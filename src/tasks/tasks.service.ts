@@ -13,7 +13,19 @@ export class TasksService {
     @InjectRepository(Project)
     private projectRepo: Repository<Project>,
   ) {}
+  async toggleComplete(id: string) {
+  const task = await this.repo.findOne({
+    where: { id },
+  });
 
+  if (!task) {
+    return null;
+  }
+
+  task.completed = !task.completed;
+
+  return this.repo.save(task);
+}
   async createTask(
     title: string,
     projectId: string,

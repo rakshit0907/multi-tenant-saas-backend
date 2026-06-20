@@ -1,14 +1,4 @@
-import {
-  Controller,
-  Post,
-  Get,
-  Body,
-  Req,
-  UseGuards,
-  Patch,
-  Param,
-  Delete,
-} from '@nestjs/common';
+import { Controller,Post,Get,Body,Req,UseGuards,Patch,Param,Delete,} from '@nestjs/common';
 import { TasksService } from './tasks.service';
 import { AuthGuard } from '@nestjs/passport';
 
@@ -44,7 +34,10 @@ export class TasksController {
   ) {
     return this.tasksService.updateTask(id, body.title);
   }
-
+  @Patch(':id/toggle')
+toggle(@Param('id') id: string) {
+  return this.tasksService.toggleComplete(id);
+}
   @Delete(':id')
   delete(@Param('id') id: string) {
     return this.tasksService.deleteTask(id);
