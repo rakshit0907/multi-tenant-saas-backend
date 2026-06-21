@@ -26,7 +26,16 @@ export class TasksController {
   ) {
     return this.tasksService.getTasks(projectId, req.user.tenantId,);   
   }
-
+  @Get('project/:projectId/stats')
+getStats(
+  @Param('projectId') projectId: string,
+  @Req() req: any,
+) {
+  return this.tasksService.getStats(
+    projectId,
+    req.user.tenantId,
+  );
+}
   @Patch(':id')
   update(
     @Param('id') id: string,

@@ -17,7 +17,23 @@ export class ProjectService {
       tenant: { id: tenantId },
     });
   }
+  async deleteProject(id: string, tenantId: string) {
+  const project = await this.repo.findOne({
+    where: {
+      id,
+      tenant: {
+        id: tenantId,
+      },
+    },
+    relations: ['tenant'],
+  });
 
+  if (!project) {
+    throw new Error('Project not found');
+  }
+
+  return this.repo.remove(project);
+}
   async findAll(tenantId: string) {
     return this.repo.find({
       where: { tenant: { id: tenantId } },

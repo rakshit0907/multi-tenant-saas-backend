@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, Req, UseGuards } from '@nestjs/common';
+import { Controller, Post, Body, Get, Req, UseGuards, Delete, Param,} from '@nestjs/common';
 import { ProjectService } from './project.service';
 import { AuthGuard } from '@nestjs/passport';
 
@@ -17,7 +17,17 @@ export class ProjectController {
       req.user?.tenantId
     );
   }
-
+  @UseGuards(AuthGuard('jwt'))
+@Delete(':id')
+delete(
+  @Param('id') id: string,
+  @Req() req,
+) {
+  return this.projectService.deleteProject(
+    id,
+    req.user.tenantId,
+  );
+}
   @UseGuards(AuthGuard('jwt'))
   @Get()
   getAll(@Req() req) {

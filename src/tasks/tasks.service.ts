@@ -26,6 +26,27 @@ export class TasksService {
 
   return this.repo.save(task);
 }
+  async getStats(
+  projectId: string,
+  tenantId: string,
+) {
+  const tasks = await this.getTasks(
+    projectId,
+    tenantId,
+  );
+
+  const total = tasks.length;
+
+  const completed = tasks.filter(
+    (t) => t.completed,
+  ).length;
+
+  return {
+    total,
+    completed,
+    pending: total - completed,
+  };
+}
   async createTask(
     title: string,
     projectId: string,
