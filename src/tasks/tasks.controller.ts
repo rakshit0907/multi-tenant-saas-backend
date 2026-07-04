@@ -14,8 +14,10 @@ export class TasksController {
     @Req() req: any,) {
     return this.tasksService.createTask(
       body.title,
+      body.description,
       projectId,
       req.user.tenantId,
+      body.dueDate,
     );
   }
 
@@ -41,7 +43,7 @@ getStats(
     @Param('id') id: string,
     @Body() body,
   ) {
-    return this.tasksService.updateTask(id, body.title);
+    return this.tasksService.updateTask(id, body.title, body.description, body.dueDate);
   }
   @Patch(':id/toggle')
 toggle(@Param('id') id: string) {

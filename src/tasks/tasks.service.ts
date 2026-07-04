@@ -49,8 +49,10 @@ export class TasksService {
 }
   async createTask(
     title: string,
+    description: string,
     projectId: string,
     tenantId: string,
+    dueDate?: Date,
   ) {
     const project = await this.projectRepo.findOne({
       where: {
@@ -70,6 +72,8 @@ export class TasksService {
 
     const task = this.repo.create({
       title,
+      dueDate,
+      description,
       project: project!,
     });
 
@@ -109,6 +113,8 @@ export class TasksService {
   async updateTask(
     id: string,
     title: string,
+    description: string,
+    dueDate?: Date,
   ) {
     const task = await this.repo.findOne({
       where: { id },
@@ -119,6 +125,10 @@ export class TasksService {
     }
 
     task.title = title;
+    task.description = description;
+    if (dueDate !== undefined) {
+      task.dueDate = dueDate;
+    }
 
     return this.repo.save(task);
   }
