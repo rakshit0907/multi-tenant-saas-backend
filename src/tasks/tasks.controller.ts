@@ -1,5 +1,6 @@
 import { Controller,Post,Get,Body,Req,UseGuards,Patch,Param,Delete,} from '@nestjs/common';
 import { TasksService } from './tasks.service';
+import { TaskPriority } from './task.entity';
 import { AuthGuard } from '@nestjs/passport';
 
 @Controller('tasks')
@@ -8,7 +9,7 @@ export class TasksController {
   constructor(private tasksService: TasksService) {}
 
   @Post('project/:projectId')
-  create(
+  createTask(
     @Param('projectId') projectId: string,
     @Body() body,
     @Req() req: any,) {
@@ -17,6 +18,7 @@ export class TasksController {
       body.description,
       projectId,
       req.user.tenantId,
+      body.priority ?? TaskPriority.MEDIUM,
       body.dueDate,
     );
   }
@@ -39,11 +41,11 @@ getStats(
   );
 }
   @Patch(':id')
-  update(
+  updateTask(
     @Param('id') id: string,
     @Body() body,
   ) {
-    return this.tasksService.updateTask(id, body.title, body.description, body.dueDate);
+    return this.tasksService.updateTask(id, body.title, body.description, body.priority ?? TaskPriority.MEDIUM, body.dueDate);
   }
   @Patch(':id/toggle')
 toggle(@Param('id') id: string) {

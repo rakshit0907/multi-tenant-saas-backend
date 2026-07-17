@@ -6,7 +6,15 @@ import {
 } from 'typeorm';
 
 import { Project } from '../project/project.entity';
+
 console.log("✅ TASK ENTITY LOADED");
+
+export enum TaskPriority {
+  LOW = 'LOW',
+  MEDIUM = 'MEDIUM',
+  HIGH = 'HIGH',
+}
+
 @Entity()
 export class Task {
   @PrimaryGeneratedColumn('uuid')
@@ -15,20 +23,33 @@ export class Task {
   @Column()
   title!: string;
 
-  @Column({ default: false })
+  @Column({
+    default: false,
+  })
   completed!: boolean;
+
+  @Column({
+    type: 'enum',
+    enum: TaskPriority,
+    default: TaskPriority.MEDIUM,
+  })
+  priority!: TaskPriority;
+
   @Column({
     type: 'timestamp',
     nullable: true,
   })
-  dueDate!: Date; 
+  dueDate!: Date;
 
   @Column({
-  type: 'text',
-  nullable: true,
-})
-description!: string;
+    type: 'text',
+    nullable: true,
+  })
+  description!: string;
 
-  @ManyToOne(() => Project, (project) => project.tasks)
+  @ManyToOne(
+    () => Project,
+    (project) => project.tasks,
+  )
   project!: Project;
 }
