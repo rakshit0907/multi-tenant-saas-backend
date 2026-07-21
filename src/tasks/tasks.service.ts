@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Project } from '../project/project.entity';
-import { Task, TaskPriority } from './task.entity';
+import { Task, TaskPriority, TaskStatus } from './task.entity';
 
 @Injectable()
 export class TasksService {
@@ -53,6 +53,7 @@ export class TasksService {
     projectId: string,
     tenantId: string,
     priority: TaskPriority,
+    status: TaskStatus = TaskStatus.PENDING,
     dueDate?: Date,
    )
   {
@@ -77,6 +78,7 @@ export class TasksService {
       dueDate,
       priority,
       description,
+      status,
       project: project!,
     });
 
@@ -118,6 +120,7 @@ export class TasksService {
     title: string,
     description: string,
     priority: TaskPriority,
+    status: TaskStatus,
     dueDate?: Date,
   ) {
     const task = await this.repo.findOne({
@@ -131,6 +134,7 @@ export class TasksService {
     task.title = title;
     task.description = description;
     task.priority = priority;
+    task.status = status;
     if (dueDate !== undefined) {
       task.dueDate = dueDate;
     }

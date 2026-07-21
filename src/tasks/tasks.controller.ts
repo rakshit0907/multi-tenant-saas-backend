@@ -19,6 +19,7 @@ export class TasksController {
       projectId,
       req.user.tenantId,
       body.priority ?? TaskPriority.MEDIUM,
+      body.status,
       body.dueDate,
     );
   }
@@ -45,7 +46,7 @@ getStats(
     @Param('id') id: string,
     @Body() body,
   ) {
-    return this.tasksService.updateTask(id, body.title, body.description, body.priority ?? TaskPriority.MEDIUM, body.dueDate);
+    return this.tasksService.updateTask(id, body.title, body.description, body.priority ?? TaskPriority.MEDIUM, body.status, body.dueDate, );
   }
   @Patch(':id/toggle')
 toggle(@Param('id') id: string) {

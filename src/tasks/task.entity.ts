@@ -7,13 +7,17 @@ import {
 
 import { Project } from '../project/project.entity';
 
-console.log("✅ TASK ENTITY LOADED");
-
 export enum TaskPriority {
   LOW = 'LOW',
   MEDIUM = 'MEDIUM',
   HIGH = 'HIGH',
 }
+export enum TaskStatus {
+  PENDING = 'PENDING',
+  IN_PROGRESS = 'IN_PROGRESS',
+  COMPLETED = 'COMPLETED',
+}
+
 
 @Entity()
 export class Task {
@@ -34,6 +38,13 @@ export class Task {
     default: TaskPriority.MEDIUM,
   })
   priority!: TaskPriority;
+
+  @Column({
+  type: 'enum',
+  enum: TaskStatus,
+  default: TaskStatus.PENDING,
+})
+status!: TaskStatus;
 
   @Column({
     type: 'timestamp',
