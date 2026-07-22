@@ -41,6 +41,18 @@ getStats(
     req.user.tenantId,
   );
 }
+  @Patch(':id/status')
+  updateStatus(
+    @Param('id') id: string,
+    @Body() Body,
+  ) {
+    return this.tasksService.updateStatus(
+      id,
+      Body.status,
+    );
+  }
+
+  
   @Patch(':id')
   updateTask(
     @Param('id') id: string,

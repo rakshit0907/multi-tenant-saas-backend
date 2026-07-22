@@ -142,6 +142,22 @@ export class TasksService {
     return this.repo.save(task);
   }
 
+  async updateStatus(
+    id: string,
+    status: TaskStatus,
+  ) {
+    const task = await this.repo.findOne({
+      where: { id },
+    });
+
+    if (!task) {
+      return null;
+    }
+
+    task.status = status;
+    return this.repo.save(task);
+  }
+
   async deleteTask(id: string) {
     const task = await this.repo.findOne({
       where: { id },
