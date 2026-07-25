@@ -6,7 +6,7 @@ import {
   OneToMany,
   CreateDateColumn,
 } from 'typeorm';
-
+import { ProjectMember } from '../project-members/project-member.entity';
 import { Tenant } from '../tenant/tenant.entity';
 import { Task } from '../tasks/task.entity';
 
@@ -26,4 +26,9 @@ export class Project {
 
   @OneToMany(() => Task, (task) => task.project)
   tasks!: Task[];
+  @OneToMany(
+    () => ProjectMember,
+    (member) => member.project,
+  )
+  members!: ProjectMember[];
 }

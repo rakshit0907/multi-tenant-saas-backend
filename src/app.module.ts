@@ -7,7 +7,7 @@ import { TenantMiddleware } from './common/middleware/tenant.middleware';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { TenantModule } from './tenant/tenant.module';
-
+import { ProjectMembersModule } from './project-members/project-members.module';
 import { ProtectedController } from './protected/protected.controller';
 import { TasksModule } from './tasks/tasks.module';
 
@@ -23,6 +23,7 @@ import { TasksModule } from './tasks/tasks.module';
       autoLoadEntities: true,
       synchronize: true,
       
+      
     }),
     ProjectModule,
     ClsModule.forRoot({
@@ -36,6 +37,7 @@ import { TasksModule } from './tasks/tasks.module';
     UsersModule,
     TenantModule,
     TasksModule,
+    ProjectMembersModule,
   ],
 
   // ✅ CORRECT PLACE
