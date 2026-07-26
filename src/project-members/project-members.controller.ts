@@ -10,11 +10,11 @@ export class ProjectMembersController {
   @Post(':projectId/members')
   async addMember(
     @Param('projectId') projectId: string,
-    @Body('userId') userId: string,
+    @Body('email') email: string,
   ) {
     return this.projectMembersService.addMember(
       projectId,
-      userId,
+      email,
     );
   }
 

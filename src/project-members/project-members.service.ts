@@ -19,13 +19,13 @@ export class ProjectMembersService {
     private userRepo: Repository<User>,
   ) {}
 
-  async addMember(projectId: string, userId: string) {
+  async addMember(projectId: string, email: string) {
     const project = await this.projectRepo.findOne({
       where: { id: projectId },
     });
 
     const user = await this.userRepo.findOne({
-      where: { id: userId },
+      where: { email: email },
     });
 
     if (!project) {
@@ -35,6 +35,18 @@ export class ProjectMembersService {
     if (!user) {
       throw new Error('User not found');
     }
+
+    const existingMember = await this.memberRepo.findOne({
+      where: {
+        project: { id: projectId },
+        user: { id: user.id },
+      },
+    });
+
+    if (existingMember) {
+      throw new Error('User is already a member of this project');
+    }
+    
 
     const member = this.memberRepo.create({
       project,
