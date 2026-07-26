@@ -1,4 +1,4 @@
-import { Body, Controller, Param, Post } from '@nestjs/common';
+import { Body, Controller, Param, Post, Get } from '@nestjs/common';
 import { ProjectMembersService } from './project-members.service';
 
 @Controller('projects')
@@ -17,4 +17,11 @@ export class ProjectMembersController {
       userId,
     );
   }
-}1
+
+  @Get(':projectId/members')
+  getMembers(
+    @Param('projectId') projectId: string,
+  ) {
+    return this.projectMembersService.getMembers(projectId);
+  }
+}

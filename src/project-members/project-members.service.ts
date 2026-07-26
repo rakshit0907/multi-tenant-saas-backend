@@ -43,4 +43,15 @@ export class ProjectMembersService {
 
     return this.memberRepo.save(member);
   }
+
+  async getMembers(projectId: string) {
+    return this.memberRepo.find({
+      where: {
+        project: {
+          id: projectId,
+        },
+      },
+      relations: ["user"],
+    });
+  }
 }
