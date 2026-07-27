@@ -66,4 +66,27 @@ export class ProjectMembersService {
       relations: ["user"],
     });
   }
+
+  async removeMember(
+    projectId: string,
+    userId: string,
+  ) {
+    const member = await this.memberRepo.findOne({
+      where: {
+        project: { id: projectId },
+        user: { id: userId },
+      },
+      relations: ["project", "user"],
+    });
+
+    if (!member) {
+      throw new Error("Member not found");
+    }
+
+    await this.memberRepo.remove(member);
+
+    return {
+      message: "Member removed successfully",
+    };
+  }
 }

@@ -1,4 +1,4 @@
-import { Body, Controller, Param, Post, Get } from '@nestjs/common';
+import { Body, Controller, Param, Post, Get, Delete, } from '@nestjs/common';
 import { ProjectMembersService } from './project-members.service';
 
 @Controller('projects')
@@ -23,5 +23,16 @@ export class ProjectMembersController {
     @Param('projectId') projectId: string,
   ) {
     return this.projectMembersService.getMembers(projectId);
+  }
+
+  @Delete(':projectId/members/:userId')
+  removeMember(
+    @Param('projectId') projectId: string,
+    @Param('userId') userId: string,
+  ) {
+    return this.projectMembersService.removeMember(
+      projectId,
+      userId,
+    );
   }
 }
