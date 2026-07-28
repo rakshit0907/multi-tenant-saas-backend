@@ -1,20 +1,23 @@
 import { Body, Controller, Param, Post, Get, Delete, } from '@nestjs/common';
 import { ProjectMembersService } from './project-members.service';
-
+import { UseGuards, Req } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
 @Controller('projects')
 export class ProjectMembersController {
   constructor(
     private readonly projectMembersService: ProjectMembersService,
   ) {}
-
+  @UseGuards(AuthGuard('jwt'))
   @Post(':projectId/members')
   async addMember(
     @Param('projectId') projectId: string,
     @Body('email') email: string,
+    @Req() req,
   ) {
     return this.projectMembersService.addMember(
       projectId,
       email,
+      req.user.userId,
     );
   }
 
@@ -29,10 +32,12 @@ export class ProjectMembersController {
   removeMember(
     @Param('projectId') projectId: string,
     @Param('userId') userId: string,
+    @Req() req,
   ) {
     return this.projectMembersService.removeMember(
       projectId,
       userId,
+      req.user.userId,
     );
   }
 }

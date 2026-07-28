@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-
+import { ForbiddenException } from '@nestjs/common';
+import { ProjectRole } from '../common/enums/project-role.enum';
 import { ProjectMember } from './project-member.entity';
 import { Project } from '../project/project.entity';
 import { User } from '../users/user.entity';
@@ -19,7 +20,7 @@ export class ProjectMembersService {
     private userRepo: Repository<User>,
   ) {}
 
-  async addMember(projectId: string, email: string) {
+  async addMember(projectId: string, email: string, requesterId: string) {
     const project = await this.projectRepo.findOne({
       where: { id: projectId },
     });
@@ -31,6 +32,8 @@ export class ProjectMembersService {
     if (!project) {
       throw new Error('Project not found');
     }
+
+    await this.verifyOwner(projectId, requesterId);
 
     if (!user) {
       throw new Error('User not found');
@@ -70,7 +73,10 @@ export class ProjectMembersService {
   async removeMember(
     projectId: string,
     userId: string,
+    requesterId: string,
   ) {
+
+    await this.verifyOwner(projectId, requesterId);
     const member = await this.memberRepo.findOne({
       where: {
         project: { id: projectId },
@@ -88,5 +94,23 @@ export class ProjectMembersService {
     return {
       message: "Member removed successfully",
     };
+  }
+
+  private async verifyOwner(
+    projectId: string,
+    userId: string,
+  ) {
+    const membership = await this.memberRepo.findOne({
+      where: {
+        project: { id: projectId },
+        user: { id: userId },
+      },
+    });
+
+    if (!membership || membership.role !== ProjectRole.OWNER) {
+      throw new ForbiddenException(
+        'Only project owners can perform this action',
+      );
+    }
   }
 }
