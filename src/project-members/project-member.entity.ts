@@ -8,7 +8,7 @@ import {
 
 import { User } from '../users/user.entity';
 import { Project } from '../project/project.entity';
-
+import { ProjectRole } from '../common/enums/project-role.enum';
 @Entity()
 export class ProjectMember {
   @PrimaryGeneratedColumn('uuid')
@@ -21,9 +21,11 @@ export class ProjectMember {
   project!: Project;
 
   @Column({
-    default: 'MEMBER',
+    type: 'enum',
+    enum: ProjectRole,
+    default: ProjectRole.MEMBER,
   })
-  role!: string;
+  role!: ProjectRole;
 
   @CreateDateColumn()
   joinedAt!: Date;
