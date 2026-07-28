@@ -14,7 +14,8 @@ export class ProjectController {
     console.log("REQ TENANT:", req['tenantId']);
     return this.projectService.create(
       body.name,
-      req.user?.tenantId
+      req.user.tenantId,
+      req.user.userId,
     );
   }
   @UseGuards(AuthGuard('jwt'))
