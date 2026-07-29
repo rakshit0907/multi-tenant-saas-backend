@@ -42,7 +42,11 @@ export class ProjectService {
     throw new Error('Project not found');
   }
 
-  return this.repo.remove(project);
+  await this.repo.remove(project);
+
+  return {
+    message: "Project detailed successfully",
+  };
 }
   async findAll(tenantId: string) {
     return this.repo.find({

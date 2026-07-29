@@ -32,6 +32,7 @@ getMyRole(
     req.user.userId,
   );
 }
+  @UseGuards(AuthGuard('jwt'))
   @Get(':projectId/members')
   getMembers(
     @Param('projectId') projectId: string,

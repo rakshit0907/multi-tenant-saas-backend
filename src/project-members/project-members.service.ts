@@ -24,10 +24,12 @@ export class ProjectMembersService {
     const project = await this.projectRepo.findOne({
       where: { id: projectId },
     });
-
+    
+    console.log("EMAIL RECEIVED:", email);
     const user = await this.userRepo.findOne({
       where: { email: email },
     });
+    console.log("USER FOUND:", user);
 
     if (!project) {
       throw new Error('Project not found');
