@@ -20,7 +20,18 @@ export class ProjectMembersController {
       req.user.userId,
     );
   }
-
+  
+  @UseGuards(AuthGuard('jwt'))
+@Get(':projectId/my-role')
+getMyRole(
+  @Param('projectId') projectId: string,
+  @Req() req,
+) {
+  return this.projectMembersService.getMyRole(
+    projectId,
+    req.user.userId,
+  );
+}
   @Get(':projectId/members')
   getMembers(
     @Param('projectId') projectId: string,

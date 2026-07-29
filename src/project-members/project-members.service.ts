@@ -96,6 +96,26 @@ export class ProjectMembersService {
     };
   }
 
+  async getMyRole(
+    projectId: string,
+    userId: string,
+  ) {
+    const member = await this.memberRepo.findOne({
+      where: {
+        project: { id: projectId },
+        user: { id: userId },
+      },
+    });
+
+    if (!member) {
+      throw new Error("Not a project member");
+    }
+
+    return {
+      role: member.role,
+    };
+  }
+
   private async verifyOwner(
     projectId: string,
     userId: string,
