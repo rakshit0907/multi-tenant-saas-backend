@@ -6,7 +6,7 @@ import {
 } from 'typeorm';
 
 import { Project } from '../project/project.entity';
-
+import { User } from '../users/user.entity';
 export enum TaskPriority {
   LOW = 'LOW',
   MEDIUM = 'MEDIUM',
@@ -63,4 +63,11 @@ status!: TaskStatus;
     (project) => project.tasks,
   )
   project!: Project;
+
+  @ManyToOne(
+    () => User,
+    {
+      nullable: true },
+  )
+  assignee!: User;
 }
