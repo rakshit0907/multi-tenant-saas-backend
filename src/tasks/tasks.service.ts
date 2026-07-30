@@ -3,7 +3,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Project } from '../project/project.entity';
 import { Task, TaskPriority, TaskStatus } from './task.entity';
-
+import { User } from '../users/user.entity';
+import { ProjectMember } from '../project-members/project-member.entity';
 @Injectable()
 export class TasksService {
   constructor(
@@ -12,7 +13,13 @@ export class TasksService {
 
     @InjectRepository(Project)
     private projectRepo: Repository<Project>,
-  ) {}
+
+    @InjectRepository(User)
+    private userRepo: Repository<User>,
+
+    @InjectRepository(ProjectMember)
+    private memberRepo: Repository<ProjectMember>,
+    ) {}
   async toggleComplete(id: string) {
   const task = await this.repo.findOne({
     where: { id },
@@ -55,6 +62,7 @@ export class TasksService {
     priority: TaskPriority,
     status: TaskStatus = TaskStatus.PENDING,
     dueDate?: Date,
+    assigneeId?: string,
    )
   {
     const project = await this.projectRepo.findOne({
@@ -73,16 +81,42 @@ export class TasksService {
       );
     }
 
-    const task = this.repo.create({
-      title,
-      dueDate,
-      priority,
-      description,
-      status,
-      project: project!,
-    });
+    let assignee: User | null = null;
 
-    return this.repo.save(task);
+    if (assigneeId) {
+      assignee = await this.userRepo.findOne({
+        where: { id: assigneeId },
+      });
+
+      if (!assignee) {
+        throw new Error("Assignee not found");
+      }
+
+      const membership = await this.memberRepo.findOne({
+        where: {
+          project: { id: projectId },
+          user: { id: assigneeId },
+        },
+      });
+
+      if (!membership) {
+        throw new Error(
+          "User is not a member of this project",
+       );
+     }
+   }
+
+   const task = this.repo.create({
+    title,
+    dueDate,
+    priority,
+    description,
+    status,
+    project,
+    assignee: assignee ?? undefined,
+   });
+
+   return this.repo.save(task);
   }
 
   async getTasks(
@@ -122,6 +156,7 @@ export class TasksService {
     priority: TaskPriority,
     status: TaskStatus,
     dueDate?: Date,
+    assigneeId?: string,
   ) {
     const task = await this.repo.findOne({
       where: { id },
