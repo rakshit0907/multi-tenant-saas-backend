@@ -62,7 +62,8 @@ export class ProjectMembersService {
   }
 
   async getMembers(projectId: string) {
-    return this.memberRepo.find({
+
+    const members = await this.memberRepo.find({
       where: {
         project: {
           id: projectId,
@@ -70,6 +71,9 @@ export class ProjectMembersService {
       },
       relations: ["user"],
     });
+
+    return members;
+        
   }
 
   async removeMember(
