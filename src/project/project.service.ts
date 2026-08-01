@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { Project } from './project.entity';
 import { ProjectMember } from '../project-members/project-member.entity';
 import { ProjectRole } from '../common/enums/project-role.enum';
+import { ForbiddenException } from '@nestjs/common';
 @Injectable()
 export class ProjectService {
   constructor(
@@ -27,7 +28,7 @@ export class ProjectService {
     });
     return project;
   }
-  async deleteProject(id: string, tenantId: string) {
+  async deleteProject(id: string, tenantId: string, userId: string,) {
   const project = await this.repo.findOne({
     where: {
       id,
@@ -42,15 +43,42 @@ export class ProjectService {
     throw new Error('Project not found');
   }
 
+  const membership = await this.memberRepo.findOne({
+    where: {
+      project: { id },
+      user: { id: userId },
+    },
+  });
+
+  if (!membership || membership.role !== ProjectRole.OWNER) {
+    throw new ForbiddenException(
+      "Only the project owner can delete this project",
+    );
+  }
+
   await this.repo.remove(project);
 
   return {
-    message: "Project detailed successfully",
+    message: "Project deleted successfully",
   };
 }
-  async findAll(tenantId: string) {
-    return this.repo.find({
-      where: { tenant: { id: tenantId } },
+  async findAll(tenantId: string, userId: string,) {
+
+    console.log("USER ID:", userId);
+    console.log("TENANT ID:", tenantId);
+
+    const memberships = await this.memberRepo.find({
+      where: {
+        user: { id: userId },
+        project: { 
+          tenant: { id: tenantId }, 
+        },
+       },
+       relations: ["project"],
     });
+
+    console.log("MEMBERSHIPS:", memberships);
+    return memberships
+        .map((m) => m.project);
   }
 }

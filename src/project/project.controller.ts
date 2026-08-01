@@ -19,19 +19,20 @@ export class ProjectController {
     );
   }
   @UseGuards(AuthGuard('jwt'))
-@Delete(':id')
-delete(
-  @Param('id') id: string,
-  @Req() req,
-) {
-  return this.projectService.deleteProject(
-    id,
-    req.user.tenantId,
-  );
-}
+  @Delete(':id')
+  delete(
+    @Param('id') id: string,
+    @Req() req,
+ ) {
+   return this.projectService.deleteProject(
+     id,
+     req.user.tenantId,
+     req.user.userId,
+    );
+  }
   @UseGuards(AuthGuard('jwt'))
   @Get()
   getAll(@Req() req) {
-    return this.projectService.findAll(req.user.tenantId);
+    return this.projectService.findAll(req.user.tenantId, req.user.userId,);
   }
 }
