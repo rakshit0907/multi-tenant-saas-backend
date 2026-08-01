@@ -28,7 +28,14 @@ export class ProjectMembersService {
     console.log("EMAIL RECEIVED:", email);
     const user = await this.userRepo.findOne({
       where: { email: email },
+      relations: ["tenant"],
     });
+
+    if (user?.tenant.id !== project?.tenant.id) {
+      throw new Error(
+        "User belongs to another organization",
+      );
+    }
     console.log("USER FOUND:", user);
 
     if (!project) {
@@ -57,8 +64,12 @@ export class ProjectMembersService {
       project,
       user,
     });
+    console.log("SAVING MEMBER:", member);
+    const saved = await this.memberRepo.save(member);
+    console.log("SAVED MEMBER:", saved);
 
-    return this.memberRepo.save(member);
+    return saved;
+   
   }
 
   async getMembers(projectId: string) {

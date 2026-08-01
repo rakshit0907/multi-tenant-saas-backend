@@ -39,12 +39,12 @@ getMyRole(
   ) {
     return this.projectMembersService.getMembers(projectId);
   }
-
+  @UseGuards(AuthGuard('jwt'))
   @Delete(':projectId/members/:userId')
   removeMember(
     @Param('projectId') projectId: string,
     @Param('userId') userId: string,
-    @Req() req,
+    @Req() req: any,
   ) {
     return this.projectMembersService.removeMember(
       projectId,
