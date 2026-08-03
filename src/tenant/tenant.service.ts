@@ -139,4 +139,25 @@ export class TenantService {
     return await this.tenantRepo.save(tenant);
 
   }
+
+  async getOrganizationUsers(
+    tenantId: string,
+   ) {
+    return this.userRepo.find({
+      where: {
+        tenant: {
+        id: tenantId,
+      },
+    },
+     select: {
+       id: true,
+       name: true,
+       email: true,
+       role: true,
+     },
+     order: {
+       name: 'ASC',
+     },
+   });
+  }
 }

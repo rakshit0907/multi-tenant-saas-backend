@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Req, UseGuards,} from '@nestjs/common';
+import { Controller, Post, Body, Req, UseGuards, Get} from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { TenantService } from './tenant.service';
 import { AcceptInviteDto } from "./dto/accept-invite.dto";
@@ -29,5 +29,11 @@ export class TenantController {
         body.name,
         body.password,
     );
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Get('users')
+  getOrganizationUsers(@Req() req) {
+    return this.tenantService.getOrganizationUsers(req.user.tenantId,);
   }
 }
