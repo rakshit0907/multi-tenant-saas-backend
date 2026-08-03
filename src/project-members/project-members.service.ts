@@ -20,24 +20,30 @@ export class ProjectMembersService {
     private userRepo: Repository<User>,
   ) {}
 
-  async addMember(projectId: string, email: string, requesterId: string) {
+  async addMember(projectId: string, userId: string, requesterId: string) {
     const project = await this.projectRepo.findOne({
       where: { id: projectId },
-    });
-    
-    console.log("EMAIL RECEIVED:", email);
-    const user = await this.userRepo.findOne({
-      where: { email: email },
       relations: ["tenant"],
     });
+    
+     const user = await this.userRepo.findOne({
+       where: { id: userId },
+       relations: ["tenant"],
+    });
 
-    if (user?.tenant.id !== project?.tenant.id) {
-      throw new Error(
-        "User belongs to another organization",
-      );
+    if (!user) {
+      throw new Error("User not found");
     }
-    console.log("USER FOUND:", user);
 
+    if (!project) {
+      throw new Error("Project not found");
+    }
+
+   if (user.tenant.id !== project.tenant.id) {
+     throw new Error(
+      "User belongs to another organization",
+    );
+  }
     if (!project) {
       throw new Error('Project not found');
     }

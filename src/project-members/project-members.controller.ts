@@ -2,6 +2,8 @@ import { Body, Controller, Param, Post, Get, Delete, } from '@nestjs/common';
 import { ProjectMembersService } from './project-members.service';
 import { UseGuards, Req } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
+import { AddMemberDto } from './dto/add-member.dto';
+
 @Controller('projects')
 export class ProjectMembersController {
   constructor(
@@ -11,27 +13,27 @@ export class ProjectMembersController {
   @Post(':projectId/members')
   async addMember(
     @Param('projectId') projectId: string,
-    @Body('email') email: string,
+    @Body() body: AddMemberDto,
     @Req() req,
   ) {
     return this.projectMembersService.addMember(
       projectId,
-      email,
+      body.userId,
       req.user.userId,
     );
   }
   
   @UseGuards(AuthGuard('jwt'))
-@Get(':projectId/my-role')
-getMyRole(
-  @Param('projectId') projectId: string,
-  @Req() req,
-) {
-  return this.projectMembersService.getMyRole(
-    projectId,
-    req.user.userId,
-  );
-}
+  @Get(':projectId/my-role')
+   getMyRole(
+     @Param('projectId') projectId: string,
+     @Req() req,
+  ) {
+   return this.projectMembersService.getMyRole(
+     projectId,
+     req.user.userId,
+   );
+ }
   @UseGuards(AuthGuard('jwt'))
   @Get(':projectId/members')
   getMembers(
