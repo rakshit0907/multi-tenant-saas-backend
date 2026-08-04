@@ -38,6 +38,7 @@ export class TasksService {
 
   return this.repo.save(task);
 }
+  
   async getStats(
   projectId: string,
   tenantId: string,
@@ -47,18 +48,62 @@ export class TasksService {
     tenantId,
   );
 
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
   const total = tasks.length;
 
-  const completed = tasks.filter(
-    (t) => t.completed,
+  const todo = tasks.filter(
+    (t) => t.status === TaskStatus.PENDING,
   ).length;
+
+  const inProgress = tasks.filter(
+    (t) => t.status === TaskStatus.IN_PROGRESS,
+  ).length;
+
+  const done = tasks.filter(
+    (t) => t.status === TaskStatus.COMPLETED,
+  ).length;
+
+  const highPriority = tasks.filter(
+    (t) => t.priority === TaskPriority.HIGH,
+  ).length;
+
+  const dueToday = tasks.filter((t) => {
+    if (!t.dueDate) return false;
+
+    const due = new Date(t.dueDate);
+    due.setHours(0, 0, 0, 0);
+
+    return due.getTime() === today.getTime();
+  }).length;
+
+  const overdue = tasks.filter((t) => {
+    if (!t.dueDate) return false;
+
+    return (
+      new Date(t.dueDate) < today &&
+      t.status !== TaskStatus.COMPLETED
+    );
+  }).length;
+
+  const completionPercentage =
+    total === 0
+      ? 0
+      : Math.round((done / total) * 100);
 
   return {
     total,
-    completed,
-    pending: total - completed,
+    todo,
+    inProgress,
+    done,
+    highPriority,
+    dueToday,
+    overdue,
+    completionPercentage,
   };
 }
+  
    async createTask(
     title: string,
     description: string,
