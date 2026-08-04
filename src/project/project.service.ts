@@ -40,7 +40,7 @@ export class ProjectService {
   });
 
   if (!project) {
-    throw new Error('Project not found');
+    throw new NotFoundException('Project not found');
   }
 
   const membership = await this.memberRepo.findOne({

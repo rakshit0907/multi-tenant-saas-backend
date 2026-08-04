@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { ForbiddenException } from '@nestjs/common';
+import { BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { ProjectRole } from '../common/enums/project-role.enum';
 import { ProjectMember } from './project-member.entity';
 import { Project } from '../project/project.entity';
@@ -32,26 +32,26 @@ export class ProjectMembersService {
     });
 
     if (!user) {
-      throw new Error("User not found");
+      throw new BadRequestException("User already exists");
     }
 
     if (!project) {
-      throw new Error("Project not found");
+      throw new NotFoundException("Project not found");
     }
 
    if (user.tenant.id !== project.tenant.id) {
-     throw new Error(
+     throw new ForbiddenException(
       "User belongs to another organization",
     );
   }
     if (!project) {
-      throw new Error('Project not found');
+      throw new NotFoundException('Project not found');
     }
 
     await this.verifyOwner(projectId, requesterId);
 
     if (!user) {
-      throw new Error('User not found');
+      throw new NotFoundException('User not found');
     }
 
     const existingMember = await this.memberRepo.findOne({
@@ -62,7 +62,7 @@ export class ProjectMembersService {
     });
 
     if (existingMember) {
-      throw new Error('User is already a member of this project');
+      throw new BadRequestException('User is already a member of this project');
     }
     
 
@@ -109,7 +109,7 @@ export class ProjectMembersService {
     });
 
     if (!member) {
-      throw new Error("Member not found");
+      throw new NotFoundException("Member not found");
     }
 
     await this.memberRepo.remove(member);
@@ -131,7 +131,7 @@ export class ProjectMembersService {
     });
 
     if (!member) {
-      throw new Error("Not a project member");
+      throw new ForbiddenException("Not a project member");
     }
 
     return {

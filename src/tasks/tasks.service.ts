@@ -5,6 +5,11 @@ import { Project } from '../project/project.entity';
 import { Task, TaskPriority, TaskStatus } from './task.entity';
 import { User } from '../users/user.entity';
 import { ProjectMember } from '../project-members/project-member.entity';
+import {
+  BadRequestException,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 @Injectable()
 export class TasksService {
   constructor(
@@ -76,7 +81,7 @@ export class TasksService {
     });
 
     if (!project) {
-      throw new Error(
+      throw new NotFoundException(
         'Project not found or does not belong to your tenant',
       );
     }
@@ -89,7 +94,7 @@ export class TasksService {
       });
 
       if (!assignee) {
-        throw new Error("Assignee not found");
+        throw new NotFoundException("Assignee not found");
       }
 
       const membership = await this.memberRepo.findOne({
@@ -100,7 +105,7 @@ export class TasksService {
       });
 
       if (!membership) {
-        throw new Error(
+        throw new BadRequestException(
           "User is not a member of this project",
        );
      }
@@ -134,7 +139,7 @@ export class TasksService {
     });
 
     if (!project) {
-      throw new Error(
+      throw new NotFoundException(
         'Project not found or does not belong to your tenant',
       );
     }

@@ -5,7 +5,7 @@ import { JwtService } from '@nestjs/jwt';
 import { Tenant } from './tenant.entity';
 import { OrganizationInvite } from './organization-invite.entity';
 import { User } from '../users/user.entity';
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, NotFoundException, Injectable } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { Role } from '../common/enums/role.enum';
 @Injectable()
@@ -33,7 +33,7 @@ export class TenantService {
     });
 
     if (!tenant) {
-      throw new Error("Tenant not found");
+      throw new NotFoundException("Tenant not found");
     }
 
     const existingUser = await this.userRepo.findOne({
@@ -41,7 +41,7 @@ export class TenantService {
     });
 
     if (existingUser) {
-      throw new Error("User already exists");
+      throw new BadRequestException("User already exists");
     }
 
     const token = randomUUID();
@@ -76,11 +76,11 @@ export class TenantService {
     });
      console.log("INVITE:", invite);
     if (!invite) {
-      throw new Error("Invalid invite");
+      throw new BadRequestException("Invalid invite");
    }
 
    if (invite.expiresAt < new Date()) {
-     throw new Error("Invite expired");
+     throw new BadRequestException("Invite expired");
    }
 
    const existingUser = await this.userRepo.findOne({
@@ -90,7 +90,7 @@ export class TenantService {
    });
 
    if (existingUser) {
-     throw new Error("User already exists");
+     throw new BadRequestException("User already exists");
    }
 
    const hashedPassword = await bcrypt.hash(password, 10);
@@ -129,7 +129,7 @@ export class TenantService {
 
   async create(data: { name: string }) {
     if (!data.name) {
-      throw new Error('Tenant name is required');
+      throw new BadRequestException('Tenant name is required');
     }
 
     const tenant = this.tenantRepo.create({
