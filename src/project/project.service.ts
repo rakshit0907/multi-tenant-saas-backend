@@ -4,7 +4,7 @@ import { Repository } from 'typeorm';
 import { Project } from './project.entity';
 import { ProjectMember } from '../project-members/project-member.entity';
 import { ProjectRole } from '../common/enums/project-role.enum';
-import { ForbiddenException } from '@nestjs/common';
+import { ForbiddenException, NotFoundException } from '@nestjs/common';
 @Injectable()
 export class ProjectService {
   constructor(
