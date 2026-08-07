@@ -69,4 +69,11 @@ toggle(@Param('id') id: string) {
   delete(@Param('id') id: string) {
     return this.tasksService.deleteTask(id);
   }
+
+  @Get(':id')
+  getTask(
+    @Param('id') id: string,
+  ) {
+    return this.tasksService.getTask(id);
+  }
 }

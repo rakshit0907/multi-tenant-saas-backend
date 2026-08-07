@@ -38,6 +38,18 @@ export class TasksService {
 
   return this.repo.save(task);
 }
+
+ async getTask(id: string) {
+  return this.repo.findOne({
+    where: { 
+      id,
+    },
+    relations: [
+      'assignee',
+      'project',
+    ],
+  });
+ }
   
   async getStats(
   projectId: string,
