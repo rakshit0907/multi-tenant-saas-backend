@@ -207,7 +207,7 @@ export class TasksService {
           id: projectId,
         },
       },
-      relations: ['project'],
+      relations: ['project', 'assignee'],
     });
   }
 
@@ -222,6 +222,7 @@ export class TasksService {
   ) {
     const task = await this.repo.findOne({
       where: { id },
+      relations: ['project', 'assignee'],
     });
 
     if (!task) {
@@ -232,11 +233,40 @@ export class TasksService {
     task.description = description;
     task.priority = priority;
     task.status = status;
+    
     if (dueDate !== undefined) {
       task.dueDate = dueDate;
     }
 
-    return this.repo.save(task);
+    if (assigneeId !== undefined) {
+      if (assigneeId === '') {
+        task.assignee = undefined;
+      } else {
+        const assignee = await this.userRepo.findOne({
+          where: { id: assigneeId },
+       });
+
+      if (!assignee) {
+        throw new NotFoundException('Assignee not found');
+      }
+
+      const membership = await this.memberRepo.findOne({
+       where: {
+         project: { id: task.project.id },
+         user: { id: assigneeId },
+       },
+     });
+
+     if (!membership) {
+       throw new BadRequestException(
+         'User is not a member of this project',
+       );
+     }
+
+     task.assignee = assignee;
+   }
+  }
+   return this.repo.save(task);
   }
 
   async updateStatus(
