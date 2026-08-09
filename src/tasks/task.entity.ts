@@ -69,5 +69,5 @@ status!: TaskStatus;
     {
       nullable: true },
   )
-  assignee!: User;
+  assignee?: User;
 }
