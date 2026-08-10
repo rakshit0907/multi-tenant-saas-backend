@@ -22,6 +22,7 @@ export class TasksController {
       body.status,
       body.dueDate,
       body.assigneeId,
+      req.user.id,
     );
   }
 
@@ -46,6 +47,7 @@ getStats(
   updateStatus(
     @Param('id') id: string,
     @Body() Body,
+    @Req() req: any,
   ) {
     return this.tasksService.updateStatus(
       id,
@@ -58,16 +60,17 @@ getStats(
   updateTask(
     @Param('id') id: string,
     @Body() body,
+    @Req() req: any,
   ) {
     return this.tasksService.updateTask(id, body.title, body.description, body.priority ?? TaskPriority.MEDIUM, body.status, body.dueDate, body.assigneeId, );
   }
   @Patch(':id/toggle')
-toggle(@Param('id') id: string) {
-  return this.tasksService.toggleComplete(id);
+  toggle(@Param('id') id: string, @Req() req: any,) {
+    return this.tasksService.toggleComplete(id, req.user.id,);
 }
   @Delete(':id')
-  delete(@Param('id') id: string) {
-    return this.tasksService.deleteTask(id);
+  delete(@Param('id') id: string, @Req() req: any,) {
+    return this.tasksService.deleteTask(id, req.user.id,);
   }
 
   @Get(':id')

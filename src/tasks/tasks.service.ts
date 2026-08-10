@@ -7,9 +7,10 @@ import { User } from '../users/user.entity';
 import { ProjectMember } from '../project-members/project-member.entity';
 import {
   BadRequestException,
-  ForbiddenException,
   NotFoundException,
 } from '@nestjs/common';
+import { ActivityService } from '../activity/activity.service';
+import { ActivityAction } from '../activity/activity.entity';
 @Injectable()
 export class TasksService {
   constructor(
@@ -24,10 +25,17 @@ export class TasksService {
 
     @InjectRepository(ProjectMember)
     private memberRepo: Repository<ProjectMember>,
+
+    private activityService: ActivityService,
     ) {}
-  async toggleComplete(id: string) {
+  
+ async toggleComplete(
+  id: string,
+  userId?: string,
+) {
   const task = await this.repo.findOne({
     where: { id },
+    relations: ['project'],
   });
 
   if (!task) {
@@ -36,8 +44,28 @@ export class TasksService {
 
   task.completed = !task.completed;
 
-  return this.repo.save(task);
-}
+  const savedTask = await this.repo.save(task);
+
+  if (userId) {
+    const user = await this.userRepo.findOne({
+      where: { id: userId },
+    });
+
+    if (user) {
+      await this.activityService.log(
+        ActivityAction.TASK_COMPLETED,
+        task.project,
+        user,
+        savedTask,
+        {
+          completed: savedTask.completed,
+        },
+      );
+    }
+  }
+
+  return savedTask;
+}   
 
  async getTask(id: string) {
   return this.repo.findOne({
@@ -125,6 +153,7 @@ export class TasksService {
     status: TaskStatus = TaskStatus.PENDING,
     dueDate?: Date,
     assigneeId?: string,
+    createdById?: string,
    )
   {
     const project = await this.projectRepo.findOne({
@@ -178,7 +207,27 @@ export class TasksService {
     assignee: assignee ?? undefined,
    });
 
-   return this.repo.save(task);
+   const savedTask = await this.repo.save(task);
+
+   if (createdById) {
+     const creator = await this.userRepo.findOne({
+       where: { id: createdById },
+     });
+
+     if (creator) {
+       await this.activityService.log(
+         ActivityAction.TASK_CREATED,
+         project,
+         creator,
+         savedTask,
+         {
+           title: savedTask.title,
+         },
+       );
+     }
+   }
+
+   return savedTask;
   }
 
   async getTasks(
@@ -272,28 +321,76 @@ export class TasksService {
   async updateStatus(
     id: string,
     status: TaskStatus,
+    userId?: string,
   ) {
     const task = await this.repo.findOne({
       where: { id },
+      relations: ['project', 'assignee'],
     });
 
     if (!task) {
-      return null;
-    }
+       return null;
+     }
 
-    task.status = status;
-    return this.repo.save(task);
+     const oldStatus = task.status;
+
+     task.status = status;
+
+     const savedTask = await this.repo.save(task);
+
+     if (userId && oldStatus !== status) {
+       const user = await this.userRepo.findOne({
+         where: { id: userId },
+     });
+
+     if (user) {
+       await this.activityService.log(
+         ActivityAction.TASK_STATUS_CHANGED,
+         task.project,
+         user,
+         savedTask,
+        {
+          oldStatus,
+          newStatus: status,
+        },
+      );
+    }
   }
 
-  async deleteTask(id: string) {
-    const task = await this.repo.findOne({
-      where: { id },
+  return savedTask;
+}
+
+  async deleteTask(
+  id: string,
+  userId?: string,
+) {
+  const task = await this.repo.findOne({
+    where: { id },
+    relations: ['project'],
+  });
+
+  if (!task) {
+    return null;
+  }
+
+  if (userId) {
+    const user = await this.userRepo.findOne({
+      where: { id: userId },
     });
 
-    if (!task) {
-      return null;
+    if (user) {
+      await this.activityService.log(
+        ActivityAction.TASK_DELETED,
+        task.project,
+        user,
+        task,
+        {
+          title: task.title,
+        },
+      );
     }
-
-    return this.repo.remove(task);
   }
+
+  return this.repo.remove(task);
+}
 }
