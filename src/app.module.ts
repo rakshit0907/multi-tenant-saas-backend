@@ -3,7 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ClsModule } from 'nestjs-cls';
 import { ProjectModule } from './project/project.module';
 import { TenantMiddleware } from './common/middleware/tenant.middleware';
-
+import { ActivityModule } from './activity/activity.module';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { TenantModule } from './tenant/tenant.module';
@@ -26,6 +26,7 @@ import { TasksModule } from './tasks/tasks.module';
       
     }),
     ProjectModule,
+    ActivityModule,
     ClsModule.forRoot({
       global: true,
       middleware: {
