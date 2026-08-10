@@ -62,7 +62,7 @@ getStats(
     @Body() body,
     @Req() req: any,
   ) {
-    return this.tasksService.updateTask(id, body.title, body.description, body.priority ?? TaskPriority.MEDIUM, body.status, body.dueDate, body.assigneeId, );
+    return this.tasksService.updateTask(id, body.title, body.description, body.priority ?? TaskPriority.MEDIUM, body.status, body.dueDate, body.assigneeId, req.user.id, );
   }
   @Patch(':id/toggle')
   toggle(@Param('id') id: string, @Req() req: any,) {

@@ -268,6 +268,7 @@ export class TasksService {
     status: TaskStatus,
     dueDate?: Date,
     assigneeId?: string,
+    userId?: string,
   ) {
     const task = await this.repo.findOne({
       where: { id },
@@ -278,11 +279,15 @@ export class TasksService {
       return null;
     }
 
+    const oldPriority = task.priority;
+    const oldStatus = task.status;
+    const oldAssigneeId = task.assignee?.id;
+
     task.title = title;
     task.description = description;
     task.priority = priority;
     task.status = status;
-    
+
     if (dueDate !== undefined) {
       task.dueDate = dueDate;
     }
@@ -293,30 +298,97 @@ export class TasksService {
       } else {
         const assignee = await this.userRepo.findOne({
           where: { id: assigneeId },
-       });
+        });
 
-      if (!assignee) {
-        throw new NotFoundException('Assignee not found');
+        if (!assignee) {
+          throw new NotFoundException('Assignee not found');
+        }
+
+        const membership = await this.memberRepo.findOne({
+          where: {
+            project: { id: task.project.id },
+            user: { id: assigneeId },
+          },
+        });
+
+        if (!membership) {
+          throw new BadRequestException(
+            'User is not a member of this project',
+          );
+        }
+
+        task.assignee = assignee;
       }
+    }
 
-      const membership = await this.memberRepo.findOne({
-       where: {
-         project: { id: task.project.id },
-         user: { id: assigneeId },
-       },
-     });
+    const savedTask = await this.repo.save(task);
 
-     if (!membership) {
-       throw new BadRequestException(
-         'User is not a member of this project',
-       );
+    if (userId) {
+      const user = await this.userRepo.findOne({
+        where: { id: userId },
+      });
+
+      if (user) {
+      // General task update
+        await this.activityService.log(
+          ActivityAction.TASK_UPDATED,
+          task.project,
+          user,
+          savedTask,
+          {
+            title: savedTask.title,
+          },
+        );
+
+      // Status changed
+        if (oldStatus !== status) {
+          await this.activityService.log(
+            ActivityAction.TASK_STATUS_CHANGED,
+            task.project,
+            user,
+            savedTask,
+           {
+             oldStatus,
+             newStatus: status,
+           },
+         );
+       }
+
+      // Priority changed
+       if (oldPriority !== priority) {
+         await this.activityService.log(
+           ActivityAction.TASK_PRIORITY_CHANGED,
+           task.project,
+           user,
+           savedTask,
+           {
+             oldPriority,
+             newPriority: priority,
+           },
+         );
+       }
+
+      // Assignee changed
+       const newAssigneeId = savedTask.assignee?.id;
+
+       if (oldAssigneeId !== newAssigneeId) {
+         await this.activityService.log(
+           ActivityAction.TASK_ASSIGNED,
+           task.project,
+           user,
+           savedTask,
+           {
+             oldAssigneeId: oldAssigneeId ?? null,
+             newAssigneeId: newAssigneeId ?? null,
+           },
+         );
+       }
      }
-
-     task.assignee = assignee;
    }
-  }
-   return this.repo.save(task);
-  }
+
+   return savedTask;
+ }
+
 
   async updateStatus(
     id: string,
