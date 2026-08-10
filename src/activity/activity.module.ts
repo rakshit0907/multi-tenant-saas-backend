@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-
+import { ActivityController } from './activity.controller';
 import { Activity } from './activity.entity';
 import { ActivityService } from './activity.service';
 
@@ -8,6 +8,7 @@ import { ActivityService } from './activity.service';
   imports: [
     TypeOrmModule.forFeature([Activity]),
   ],
+  controllers: [ActivityController],
   providers: [ActivityService],
   exports: [ActivityService],
 })

@@ -36,11 +36,14 @@ export class ActivityService {
     return this.activityRepo.save(activity);
   }
 
-  async getProjectActivity(projectId: string) {
+  async getProjectActivity(projectId: string, tenantId: string,) {
     return this.activityRepo.find({
       where: {
         project: {
           id: projectId,
+          tenant: {
+            id: tenantId,
+          },
         },
       },
       relations: ['user', 'task'],
