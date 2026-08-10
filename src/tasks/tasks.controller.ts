@@ -2,7 +2,7 @@ import { Controller,Post,Get,Body,Req,UseGuards,Patch,Param,Delete,} from '@nest
 import { TasksService } from './tasks.service';
 import { TaskPriority } from './task.entity';
 import { AuthGuard } from '@nestjs/passport';
-
+import { UpdateTaskDto } from './dto/update-task.dto';
 @Controller('tasks')
 @UseGuards(AuthGuard('jwt'))
 export class TasksController {
@@ -11,16 +11,16 @@ export class TasksController {
   @Post('project/:projectId')
   createTask(
     @Param('projectId') projectId: string,
-    @Body() body,
+    @Body() body: UpdateTaskDto,
     @Req() req: any,) {
     return this.tasksService.createTask(
       body.title,
-      body.description,
+      body.description ?? '',
       projectId,
       req.user.tenantId,
       body.priority ?? TaskPriority.MEDIUM,
       body.status,
-      body.dueDate,
+      body.dueDate ? new Date(body.dueDate) : undefined,
       body.assigneeId,
       req.user.id,
     );
@@ -52,6 +52,8 @@ getStats(
     return this.tasksService.updateStatus(
       id,
       Body.status,
+      req.user.tenantId,
+      req.user.id,
     );
   }
 
@@ -66,17 +68,18 @@ getStats(
   }
   @Patch(':id/toggle')
   toggle(@Param('id') id: string, @Req() req: any,) {
-    return this.tasksService.toggleComplete(id, req.user.id,);
+    return this.tasksService.toggleComplete(id, req.user.tenantId, req.user.id,);
 }
   @Delete(':id')
   delete(@Param('id') id: string, @Req() req: any,) {
-    return this.tasksService.deleteTask(id, req.user.id,);
+    return this.tasksService.deleteTask(id, req.user.tenantId, req.user.id,);
   }
 
   @Get(':id')
   getTask(
     @Param('id') id: string,
+    @Req() req: any,
   ) {
-    return this.tasksService.getTask(id);
+    return this.tasksService.getTask(id, req.user.tenantId,);
   }
 }

@@ -31,10 +31,16 @@ export class TasksService {
   
  async toggleComplete(
   id: string,
+  tenantId: string,
   userId?: string,
 ) {
   const task = await this.repo.findOne({
-    where: { id },
+    where: { id, project: {
+      tenant: {
+        id: tenantId,
+      },
+    },
+   },
     relations: ['project'],
   });
 
@@ -67,10 +73,15 @@ export class TasksService {
   return savedTask;
 }   
 
- async getTask(id: string) {
+ async getTask(id: string, tenantId: string) {
   return this.repo.findOne({
     where: { 
       id,
+      project: {
+        tenant: {
+          id: tenantId,
+        },
+      },
     },
     relations: [
       'assignee',
@@ -393,10 +404,16 @@ export class TasksService {
   async updateStatus(
     id: string,
     status: TaskStatus,
+    tenantId: string,
     userId?: string,
   ) {
     const task = await this.repo.findOne({
-      where: { id },
+      where: { id, project: {
+        tenant: {
+          id: tenantId,
+        },
+      },
+    },  
       relations: ['project', 'assignee'],
     });
 
@@ -434,10 +451,16 @@ export class TasksService {
 
   async deleteTask(
   id: string,
+  tenantId: string,
   userId?: string,
 ) {
   const task = await this.repo.findOne({
-    where: { id },
+    where: { id, project: {
+      tenant: {
+        id: tenantId,
+      },
+    },
+   },
     relations: ['project'],
   });
 
