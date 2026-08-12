@@ -1,4 +1,4 @@
-import { Controller,Post,Get,Body,Req,UseGuards,Patch,Param,Delete,} from '@nestjs/common';
+import { Controller,Post,Get,Body,Req,UseGuards,Patch,Param,Delete, BadRequestException,} from '@nestjs/common';
 import { TasksService } from './tasks.service';
 import { TaskPriority } from './task.entity';
 import { AuthGuard } from '@nestjs/passport';
@@ -49,6 +49,9 @@ getStats(
     @Body() body: UpdateTaskDto,
     @Req() req: any,
   ) {
+    if (!body.status) {
+      throw new BadRequestException('Status is required');
+    }
     return this.tasksService.updateStatus(
       id,
       body.status,
@@ -64,7 +67,9 @@ getStats(
     @Body() body,
     @Req() req: any,
   ) {
-    return this.tasksService.updateTask(id, body.title!, body.description ?? '', body.priority ?? TaskPriority.MEDIUM, body.status, body.dueDate ? new Date(body.dueDate) : undefined, body.assigneeId, req.user.id,);
+    return this.tasksService.updateTask(id, body.title!, body.description ?? '', body.priority ?? TaskPriority.MEDIUM, req.user.tenantId, body.status, body.dueDate ? new Date(body.dueDate) : undefined, body.assigneeId, req.user.id,
+);
+
   }
   @Patch(':id/toggle')
   toggle(@Param('id') id: string, @Req() req: any,) {

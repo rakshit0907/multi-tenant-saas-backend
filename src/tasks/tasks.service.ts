@@ -279,12 +279,13 @@ export class TasksService {
     title: string,
     description: string,
     priority: TaskPriority,
+    tenantId: string,
     status?: TaskStatus,
     dueDate?: Date,
     assigneeId?: string,
-    tenantId: string,
     userId?: string,
   ) {
+
     const task = await this.repo.findOne({
       where: { id,
         project: {
@@ -366,7 +367,7 @@ export class TasksService {
         );
 
       // Status changed
-        if (oldStatus !== status) {
+        if (status !== undefined && oldStatus !== task.status) {
           await this.activityService.log(
             ActivityAction.TASK_STATUS_CHANGED,
             task.project,
@@ -374,7 +375,7 @@ export class TasksService {
             savedTask,
            {
              oldStatus,
-             newStatus: status,
+             newStatus: task.status,
            },
          );
        }
@@ -417,7 +418,7 @@ export class TasksService {
 
   async updateStatus(
     id: string,
-    status?: TaskStatus,
+    status: TaskStatus,
     tenantId: string,
     userId?: string,
   ) {
@@ -437,7 +438,10 @@ export class TasksService {
 
      const oldStatus = task.status;
 
-     task.status = status;
+     if (status !== undefined) {
+      task.status = status;
+     }
+    
 
      const savedTask = await this.repo.save(task);
 
