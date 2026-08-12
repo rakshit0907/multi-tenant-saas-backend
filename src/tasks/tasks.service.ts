@@ -265,6 +265,9 @@ export class TasksService {
       where: {
         project: {
           id: projectId,
+          tenant: {
+            id: tenantId,
+          },
         },
       },
       relations: ['project', 'assignee'],
@@ -276,13 +279,20 @@ export class TasksService {
     title: string,
     description: string,
     priority: TaskPriority,
-    status: TaskStatus,
+    status?: TaskStatus,
     dueDate?: Date,
     assigneeId?: string,
+    tenantId: string,
     userId?: string,
   ) {
     const task = await this.repo.findOne({
-      where: { id },
+      where: { id,
+        project: {
+          tenant: {
+            id: tenantId,
+          },
+        },
+       },
       relations: ['project', 'assignee'],
     });
 
@@ -297,7 +307,11 @@ export class TasksService {
     task.title = title;
     task.description = description;
     task.priority = priority;
-    task.status = status;
+    if (status !== undefined) {
+      task.status = status;
+
+    }
+    
 
     if (dueDate !== undefined) {
       task.dueDate = dueDate;
@@ -403,7 +417,7 @@ export class TasksService {
 
   async updateStatus(
     id: string,
-    status: TaskStatus,
+    status?: TaskStatus,
     tenantId: string,
     userId?: string,
   ) {

@@ -11,7 +11,7 @@ export class TasksController {
   @Post('project/:projectId')
   createTask(
     @Param('projectId') projectId: string,
-    @Body() body: UpdateTaskDto,
+    @Body() body: any,
     @Req() req: any,) {
     return this.tasksService.createTask(
       body.title,
@@ -46,12 +46,12 @@ getStats(
   @Patch(':id/status')
   updateStatus(
     @Param('id') id: string,
-    @Body() Body,
+    @Body() body: UpdateTaskDto,
     @Req() req: any,
   ) {
     return this.tasksService.updateStatus(
       id,
-      Body.status,
+      body.status,
       req.user.tenantId,
       req.user.id,
     );
@@ -64,7 +64,7 @@ getStats(
     @Body() body,
     @Req() req: any,
   ) {
-    return this.tasksService.updateTask(id, body.title, body.description, body.priority ?? TaskPriority.MEDIUM, body.status, body.dueDate, body.assigneeId, req.user.id, );
+    return this.tasksService.updateTask(id, body.title!, body.description ?? '', body.priority ?? TaskPriority.MEDIUM, body.status, body.dueDate ? new Date(body.dueDate) : undefined, body.assigneeId, req.user.id,);
   }
   @Patch(':id/toggle')
   toggle(@Param('id') id: string, @Req() req: any,) {

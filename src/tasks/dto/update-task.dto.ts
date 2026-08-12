@@ -1,25 +1,38 @@
-import { IsEnum, IsOptional, IsString, IsDateString } from 'class-validator';
+import {
+  IsEnum,
+  IsOptional,
+  IsString,
+  IsDateString,
+  IsUUID,
+  MaxLength,
+} from 'class-validator';
+
 import { TaskPriority, TaskStatus } from '../task.entity';
 
 export class UpdateTaskDto {
+  @IsOptional()
   @IsString()
-  title!: string;
+  @MaxLength(150)
+  title?: string;
 
   @IsOptional()
   @IsString()
+  @MaxLength(2000)
   description?: string;
 
+  @IsOptional()
   @IsEnum(TaskPriority)
-  priority!: TaskPriority;
+  priority?: TaskPriority;
 
+  @IsOptional()
   @IsEnum(TaskStatus)
-  status!: TaskStatus;
+  status?: TaskStatus;
 
   @IsOptional()
   @IsDateString()
   dueDate?: string;
 
   @IsOptional()
-  @IsString()
+  @IsUUID()
   assigneeId?: string;
 }
