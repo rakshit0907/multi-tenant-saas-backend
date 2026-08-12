@@ -35,4 +35,17 @@ export class ProjectController {
   getAll(@Req() req) {
     return this.projectService.findAll(req.user.tenantId, req.user.userId,);
   }
+
+  @Get(':id/dashboard')
+  @UseGuards(AuthGuard('jwt'))
+  getDashboard(
+    @Param('id') id: string,
+    @Req() req,
+  ) {
+   return this.projectService.getDashboard(
+     id,
+     req.user.tenantId,
+     req.user.userId,
+   );
+  }
 }

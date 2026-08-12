@@ -5,6 +5,8 @@ import { Project } from './project.entity';
 import { ProjectMember } from '../project-members/project-member.entity';
 import { ProjectRole } from '../common/enums/project-role.enum';
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
+import { TaskPriority, TaskStatus } from '../tasks/task.entity';
+import { Task } from '../tasks/task.entity';
 @Injectable()
 export class ProjectService {
   constructor(
@@ -13,6 +15,9 @@ export class ProjectService {
 
     @InjectRepository(ProjectMember)
     private memberRepo: Repository<ProjectMember>,
+
+    @InjectRepository(Task)
+    private taskRepo: Repository<Task>,
   ) {}
 
   async create(name: string, tenantId: string, userId: string,) {
@@ -80,5 +85,138 @@ export class ProjectService {
     console.log("MEMBERSHIPS:", memberships);
     return memberships
         .map((m) => m.project);
+  }
+
+  async getDashboard(
+    projectId: string,
+    tenantId: string,
+    userId: string,
+  ) {
+    const project = await this.repo.findOne({
+      where: {
+        id: projectId,
+        tenant: {
+          id: tenantId,
+        },
+      },
+       relations: ['tenant'],
+    });
+
+    if (!project) {
+      throw new NotFoundException('Project not found');
+    }
+
+    const membership = await this.memberRepo.findOne({
+      where: {
+        project: {
+          id: projectId,
+        },
+        user: {
+          id: userId,
+        },
+      },
+   });
+
+    if (!membership) {
+      throw new ForbiddenException(
+        'You are not a member of this project',
+      );
+    }
+
+    const tasks = await this.taskRepo.find({
+      where: {
+        project: {
+          id: projectId,
+        },
+      },
+    });
+
+    const total = tasks.length;
+
+    const pending = tasks.filter(
+      (task: any) => task.status === TaskStatus.PENDING,
+    ).length;
+
+    const inProgress = tasks.filter(
+      (task: any) => task.status === TaskStatus.IN_PROGRESS,
+    ).length;
+
+    const completed = tasks.filter(
+      (task: any) => task.status === TaskStatus.COMPLETED,
+    ).length;
+
+    const low = tasks.filter(
+      (task: any) => task.priority === TaskPriority.LOW,
+    ).length;
+
+    const medium = tasks.filter(
+      (task: any) => task.priority === TaskPriority.MEDIUM,
+    ).length;
+
+    const high = tasks.filter(
+      (task: any) => task.priority === TaskPriority.HIGH,
+    ).length;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const dueToday = tasks.filter((task: any) => {
+      if (!task.dueDate) return false;
+
+    const due = new Date(task.dueDate);
+    due.setHours(0, 0, 0, 0);
+
+    return due.getTime() === today.getTime();
+  }).length;
+
+    const overdue = tasks.filter((task: any) => {
+      if (!task.dueDate) return false;
+
+      return (
+        new Date(task.dueDate) < today &&
+        task.status !== TaskStatus.COMPLETED
+      );
+    }).length;
+
+    const completionPercentage =
+      total === 0
+        ? 0
+        : Math.round((completed / total) * 100);
+
+    const members = await this.memberRepo.count({
+      where: {
+        project: {
+          id: projectId,
+        },
+      },
+    });
+
+    return {
+      project: {
+        id: project.id,
+        name: project.name,
+        createdAt: project.created_at,
+      },
+
+      tasks: {
+        total,
+        pending,
+        inProgress,
+        completed,
+        overdue,
+        dueToday,
+        completionPercentage,
+      },
+
+      priority: {
+        low,
+        medium,
+        high,
+      },
+
+      members: {
+        total: members,
+      },
+    };
   }
 }
