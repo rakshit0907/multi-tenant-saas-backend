@@ -7,6 +7,7 @@ import { ProjectRole } from '../common/enums/project-role.enum';
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { TaskPriority, TaskStatus } from '../tasks/task.entity';
 import { Task } from '../tasks/task.entity';
+import { ActivityService } from '../activity/activity.service';
 @Injectable()
 export class ProjectService {
   constructor(
@@ -18,6 +19,8 @@ export class ProjectService {
 
     @InjectRepository(Task)
     private taskRepo: Repository<Task>,
+
+    private activityService: ActivityService,
   ) {}
 
   async create(name: string, tenantId: string, userId: string,) {
@@ -191,6 +194,14 @@ export class ProjectService {
       },
     });
 
+    const recentActivity = (
+      await this.activityService.getProjectActivity(
+        projectId,
+        tenantId,
+        10,
+      )
+    )
+
     return {
       project: {
         id: project.id,
@@ -217,6 +228,7 @@ export class ProjectService {
       members: {
         total: members,
       },
+      recentActivity,
     };
   }
 }

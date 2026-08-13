@@ -5,8 +5,9 @@ import { ProjectService } from './project.service';
 import { ProjectController } from './project.controller';
 import { ProjectMember } from '../project-members/project-member.entity';
 import { Task } from '../tasks/task.entity';
+import { ActivityModule } from '../activity/activity.module';
 @Module({
-    imports: [TypeOrmModule.forFeature([Project, ProjectMember, Task,])],
+    imports: [TypeOrmModule.forFeature([Project, ProjectMember, Task,]), ActivityModule,],
     providers: [ProjectService],
     controllers: [ProjectController],
 })

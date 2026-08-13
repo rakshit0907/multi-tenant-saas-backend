@@ -36,20 +36,42 @@ export class ActivityService {
     return this.activityRepo.save(activity);
   }
 
-  async getProjectActivity(projectId: string, tenantId: string,) {
-    return this.activityRepo.find({
-      where: {
-        project: {
-          id: projectId,
-          tenant: {
-            id: tenantId,
-          },
+  async getProjectActivity(projectId: string, tenantId: string, limit = 10,) {
+  const activities = await this.activityRepo.find({
+    where: {
+      project: {
+        id: projectId,
+        tenant: {
+          id: tenantId,
         },
       },
-      relations: ['user', 'task'],
-      order: {
-        createdAt: 'DESC',
-      },
-    });
+    },
+    relations: ['user', 'task'],
+    order: {
+      createdAt: 'DESC',
+    },
+    take: limit,
+  });
+
+  return activities.map((activity) => ({
+    id: activity.id,
+    action: activity.action,
+
+    user: {
+      id: activity.user.id,
+      name: activity.user.name,
+    },
+
+    task: activity.task
+      ? {
+          id: activity.task.id,
+          title: activity.task.title,
+        }
+      : null,
+
+    metadata: activity.metadata,
+    createdAt: activity.createdAt,
+  }));
+  
   }
 }
