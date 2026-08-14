@@ -20,78 +20,91 @@ export class ProjectMembersService {
     private userRepo: Repository<User>,
   ) {}
 
-  async addMember(projectId: string, userId: string, requesterId: string) {
+  async addMember(
+    projectId: string,
+    userId: string,
+    requesterId: string,
+  ) {
     const project = await this.projectRepo.findOne({
-      where: { id: projectId },
-      relations: ["tenant"],
-    });
-    
-     const user = await this.userRepo.findOne({
-       where: { id: userId },
-       relations: ["tenant"],
-    });
-
-    if (!user) {
-      throw new BadRequestException("User already exists");
-    }
-
-    if (!project) {
-      throw new NotFoundException("Project not found");
-    }
-
-   if (user.tenant.id !== project.tenant.id) {
-     throw new ForbiddenException(
-      "User belongs to another organization",
-    );
-  }
-    if (!project) {
-      throw new NotFoundException('Project not found');
-    }
-
-    await this.verifyOwner(projectId, requesterId);
-
-    if (!user) {
-      throw new NotFoundException('User not found');
-    }
-
-    const existingMember = await this.memberRepo.findOne({
       where: {
-        project: { id: projectId },
-        user: { id: user.id },
+        id: projectId,
+     },
+      relations: ['tenant'],
+     });
+
+     if (!project) {
+       throw new NotFoundException('Project not found');
+     }
+
+     await this.verifyOwner(projectId, requesterId);
+
+     const user = await this.userRepo.findOne({
+       where: {
+        id: userId,
+       },
+       relations: ['tenant'],
+     });
+
+     if (!user) {
+       throw new NotFoundException('User not found');
+     }
+
+     if (user.tenant.id !== project.tenant.id) {
+       throw new ForbiddenException(
+         'User belongs to another organization',
+       );
+     }
+
+     const existingMember = await this.memberRepo.findOne({
+       where: {
+         project: {
+         id: projectId,
+        },
+        user: {
+          id: userId,
+        },
       },
     });
 
     if (existingMember) {
-      throw new BadRequestException('User is already a member of this project');
+      throw new BadRequestException(
+        'User is already a member of this project',
+      );
     }
-    
 
     const member = this.memberRepo.create({
       project,
       user,
+      role: ProjectRole.MEMBER,
     });
-    console.log("SAVING MEMBER:", member);
-    const saved = await this.memberRepo.save(member);
-    console.log("SAVED MEMBER:", saved);
 
-    return saved;
-   
+    return this.memberRepo.save(member);
   }
 
-  async getMembers(projectId: string) {
+  async getMembers(projectId: string, tenantId: string,) {
 
-    const members = await this.memberRepo.find({
+    const project = await this.projectRepo.findOne({
       where: {
-        project: {
           id: projectId,
+          tenant: {
+            id: tenantId,
+          },
         },
-      },
-      relations: ["user"],
-    });
+      });
 
-    return members;
-        
-  }
+     if (!project) {
+       throw new NotFoundException('Project not found');
+     }
+
+     return this.memberRepo.find({
+       where: {
+         project: {
+           id: projectId,
+         },
+       },
+       relations: ['user'],
+     });
+   }
 
   async removeMember(
     projectId: string,
@@ -119,6 +132,47 @@ export class ProjectMembersService {
     };
   }
 
+  async updateRole(
+  projectId: string,
+  userId: string,
+  role: ProjectRole,
+  requesterId: string,
+) {
+  await this.verifyOwner(projectId, requesterId);
+
+  const member = await this.memberRepo.findOne({
+    where: {
+      project: {
+        id: projectId,
+      },
+      user: {
+        id: userId,
+      },
+    },
+    relations: ['project', 'user'],
+   });
+
+   if (!member) {
+     throw new NotFoundException('Member not found');
+   }
+
+   if (member.role === ProjectRole.OWNER) {
+     throw new BadRequestException(
+       'Owner role cannot be changed',
+   );
+  }
+
+  if (role === ProjectRole.OWNER) {
+    throw new BadRequestException(
+      'Cannot assign OWNER role through this endpoint',
+    );
+  }
+
+  member.role = role;
+
+  return this.memberRepo.save(member);
+}
+   
   async getMyRole(
     projectId: string,
     userId: string,
