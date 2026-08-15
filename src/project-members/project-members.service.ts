@@ -6,7 +6,8 @@ import { ProjectRole } from '../common/enums/project-role.enum';
 import { ProjectMember } from './project-member.entity';
 import { Project } from '../project/project.entity';
 import { User } from '../users/user.entity';
-
+import { ActivityService } from '../activity/activity.service';
+import { ActivityAction } from '../activity/activity.entity';
 @Injectable()
 export class ProjectMembersService {
   constructor(
@@ -18,6 +19,8 @@ export class ProjectMembersService {
 
     @InjectRepository(User)
     private userRepo: Repository<User>,
+
+    private activityService: ActivityService,
   ) {}
 
   async addMember(
@@ -78,7 +81,21 @@ export class ProjectMembersService {
       role: ProjectRole.MEMBER,
     });
 
-    return this.memberRepo.save(member);
+    const savedMember = await this.memberRepo.save(member);
+
+    await this.activityService.log(
+      ActivityAction.MEMBER_ADDED,
+      project,
+      { id: requesterId } as User,
+      null,
+      {
+        addedUserId: user.id,
+        addedUserName: user.name,
+        role: ProjectRole.MEMBER,
+      },
+    );
+
+    return savedMember;
   }
 
   async getMembers(projectId: string, tenantId: string,) {
@@ -125,8 +142,18 @@ export class ProjectMembersService {
       throw new NotFoundException("Member not found");
     }
 
-    await this.memberRepo.remove(member);
+    await this.activityService.log(
+      ActivityAction.MEMBER_REMOVED,
+      member.project,
+      { id: requesterId } as User,
+      null,
+      {
+        removedUserId: member.user.id,
+        removedUserName: member.user.name,
+      },
+    );
 
+    await this.memberRepo.remove(member);
     return {
       message: "Member removed successfully",
     };
@@ -167,10 +194,25 @@ export class ProjectMembersService {
       'Cannot assign OWNER role through this endpoint',
     );
   }
-
+  const oldRole = member.role;
   member.role = role;
 
-  return this.memberRepo.save(member);
+  const savedMember = await this.memberRepo.save(member);
+
+  await this.activityService.log(
+     ActivityAction.MEMBER_ROLE_CHANGED,
+      member.project,
+      { id: requesterId } as User,
+      null,
+      {
+        argetUserId: member.user.id,
+        targetUserName: member.user.name,
+        oldRole,
+        newRole: role,
+      },
+  );  
+
+  return savedMember;
 }
    
   async getMyRole(
