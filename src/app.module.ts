@@ -11,6 +11,7 @@ import { ProjectMembersModule } from './project-members/project-members.module';
 import { ProtectedController } from './protected/protected.controller';
 import { TasksModule } from './tasks/tasks.module';
 import { ProjectInvitationsModule } from './project-invitations/project-invitations.module';
+import { NotificationsModule } from './notifications/notifications.module';
 @Module({
   imports: [
     TypeOrmModule.forRoot({
@@ -40,6 +41,7 @@ import { ProjectInvitationsModule } from './project-invitations/project-invitati
     TasksModule,
     ProjectMembersModule,
     ProjectInvitationsModule,
+    NotificationsModule,
   ],
 
   // ✅ CORRECT PLACE
