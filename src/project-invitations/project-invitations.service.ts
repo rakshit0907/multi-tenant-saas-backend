@@ -11,7 +11,8 @@ import {
   InvitationStatus,
   ProjectInvitation,
 } from './project-invitation.entity';
-
+import { NotificationService } from '../notifications/notification.service';
+import { NotificationType } from '../notifications/notification.entity';
 import { Project } from '../project/project.entity';
 import { User } from '../users/user.entity';
 import { ProjectMember } from '../project-members/project-member.entity';
@@ -31,6 +32,8 @@ export class ProjectInvitationsService {
 
     @InjectRepository(ProjectMember)
     private memberRepo: Repository<ProjectMember>,
+
+    private notificationService: NotificationService,
   ) {}
 
   async createInvitation(
@@ -122,7 +125,22 @@ export class ProjectInvitationsService {
       status: InvitationStatus.PENDING,
     });
 
-    return this.invitationRepo.save(invitation);
+    const savedInvitation =
+      await this.invitationRepo.save(invitation);
+
+    await this.notificationService.create(
+      invitedUser,
+      NotificationType.PROJECT_INVITATION,
+      'New project invitation',
+      `You have been invited to join ${project.name}`,
+       project,
+    {
+      invitationId: savedInvitation.id,
+      invitedById: invitedBy.id,
+    },
+  );
+
+   return savedInvitation;
   }
 
   async getMyInvitations(
