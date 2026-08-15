@@ -10,7 +10,7 @@ import { TenantModule } from './tenant/tenant.module';
 import { ProjectMembersModule } from './project-members/project-members.module';
 import { ProtectedController } from './protected/protected.controller';
 import { TasksModule } from './tasks/tasks.module';
-
+import { ProjectInvitationsModule } from './project-invitations/project-invitations.module';
 @Module({
   imports: [
     TypeOrmModule.forRoot({
@@ -39,6 +39,7 @@ import { TasksModule } from './tasks/tasks.module';
     TenantModule,
     TasksModule,
     ProjectMembersModule,
+    ProjectInvitationsModule,
   ],
 
   // ✅ CORRECT PLACE
