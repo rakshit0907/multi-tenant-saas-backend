@@ -4,7 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ProjectMember } from './project-member.entity';
 import { ProjectMembersService } from './project-members.service';
 import { ProjectMembersController } from './project-members.controller';
-
+import { ActivityModule } from '../activity/activity.module';
 import { User } from '../users/user.entity';
 import { Project } from '../project/project.entity';
 
@@ -15,6 +15,7 @@ import { Project } from '../project/project.entity';
       User,
       Project,
     ]),
+    ActivityModule,
   ],
   controllers: [ProjectMembersController],
   providers: [ProjectMembersService],
