@@ -142,6 +142,12 @@ export class ProjectMembersService {
       throw new NotFoundException("Member not found");
     }
 
+    if (member.role === ProjectRole.OWNER) {
+      throw new BadRequestException(
+        'Project owner cannot be removed',
+      );
+    }
+
     await this.activityService.log(
       ActivityAction.MEMBER_REMOVED,
       member.project,
@@ -205,7 +211,7 @@ export class ProjectMembersService {
       { id: requesterId } as User,
       null,
       {
-        argetUserId: member.user.id,
+        targetUserId: member.user.id,
         targetUserName: member.user.name,
         oldRole,
         newRole: role,
