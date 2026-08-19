@@ -25,6 +25,13 @@ export class ActivityService {
     task?: Task | null,
     metadata?: Record<string, any>,
   ) {
+    console.log('ACTIVITY LOGGING:', {
+      action,
+      projectId: project.id,
+      userId: user.id,
+      taskId: task?.id,
+    });
+    
     const activity = this.activityRepo.create({
       action,
       project,
