@@ -52,25 +52,26 @@ export class TasksService {
 
   const savedTask = await this.repo.save(task);
 
-  if (userId) {
-    const user = await this.userRepo.findOne({
-      where: { id: userId },
-    });
+  const user = await this.userRepo.findOne({
+    where: {
+      id: userId,
+    },
+  });
 
-    if (user) {
-      await this.activityService.log(
-        ActivityAction.TASK_COMPLETED,
-        task.project,
-        user,
-        savedTask,
-        {
-          completed: savedTask.completed,
-        },
-      );
-    }
+  if (!user) {
+    throw new NotFoundException('Updating user not found');
   }
 
-  return savedTask;
+  await this.activityService.log(
+    ActivityAction.TASK_COMPLETED,
+    task.project,
+    user,
+    savedTask,
+   {
+     completed: savedTask.completed,
+   },
+  );
+   return savedTask;
 }   
 
  async getTask(id: string, tenantId: string) {
@@ -219,24 +220,26 @@ export class TasksService {
    });
 
    const savedTask = await this.repo.save(task);
+   
+   const creator = await this.userRepo.findOne({
+    where: {
+      id: createdById,
+    },
+   });
 
-   if (createdById) {
-     const creator = await this.userRepo.findOne({
-       where: { id: createdById },
-     });
-
-     if (creator) {
-       await this.activityService.log(
-         ActivityAction.TASK_CREATED,
-         project,
-         creator,
-         savedTask,
-         {
-           title: savedTask.title,
-         },
-       );
-     }
+   if (!creator) {
+    throw new NotFoundException('Creating user not found');
    }
+
+    await this.activityService.log(
+      ActivityAction.TASK_CREATED,
+      project,
+      creator,
+      savedTask,
+      {
+        title: savedTask.title,
+      },
+    );
 
    return savedTask;
   }
@@ -349,69 +352,72 @@ export class TasksService {
 
     const savedTask = await this.repo.save(task);
 
-    if (userId) {
-      const user = await this.userRepo.findOne({
-        where: { id: userId },
-      });
+    const user = await this.userRepo.findOne({
+      where: {
+        id: userId,
+    },
+  });
 
-      if (user) {
-      // General task update
-        await this.activityService.log(
-          ActivityAction.TASK_UPDATED,
-          task.project,
-          user,
-          savedTask,
-          {
-            title: savedTask.title,
-          },
-        );
+  if (!user) {
+    throw new NotFoundException('Updating user not found');
+  }
 
-      // Status changed
-        if (status !== undefined && oldStatus !== task.status) {
-          await this.activityService.log(
-            ActivityAction.TASK_STATUS_CHANGED,
-            task.project,
-            user,
-            savedTask,
-           {
-             oldStatus,
-             newStatus: task.status,
-           },
-         );
-       }
+// General task update
+  await this.activityService.log(
+    ActivityAction.TASK_UPDATED,
+    task.project,
+    user,
+    savedTask,
+   {
+     title: savedTask.title,
+   },
+ );
 
-      // Priority changed
-       if (oldPriority !== priority) {
-         await this.activityService.log(
-           ActivityAction.TASK_PRIORITY_CHANGED,
-           task.project,
-           user,
-           savedTask,
-           {
-             oldPriority,
-             newPriority: priority,
-           },
-         );
-       }
+// Status changed
+ if (oldStatus !== task.status) {
+   await this.activityService.log(
+     ActivityAction.TASK_STATUS_CHANGED,
+     task.project,
+     user,
+     savedTask,
+     {
+       oldStatus,
+       newStatus: task.status,
+     },
+   );
+  }
 
-      // Assignee changed
-       const newAssigneeId = savedTask.assignee?.id;
+// Priority changed
+  if (oldPriority !== task.priority) {
+    await this.activityService.log(
+      ActivityAction.TASK_PRIORITY_CHANGED,
+      task.project,
+      user,
+      savedTask,
+    {
+       oldPriority,
+       newPriority: task.priority,
+     },
+   );
+  }
 
-       if (oldAssigneeId !== newAssigneeId) {
-         await this.activityService.log(
-           ActivityAction.TASK_ASSIGNED,
-           task.project,
-           user,
-           savedTask,
-           {
-             oldAssigneeId: oldAssigneeId ?? null,
-             newAssigneeId: newAssigneeId ?? null,
-           },
-         );
-       }
-     }
-   }
+// Assignee changed
+  const newAssigneeId = savedTask.assignee?.id;
 
+  if (oldAssigneeId !== newAssigneeId) {
+    await this.activityService.log(
+      ActivityAction.TASK_ASSIGNED,
+      task.project,
+      user,
+      savedTask,
+     {
+      oldAssigneeId: oldAssigneeId ?? null,
+      newAssigneeId: newAssigneeId ?? null,
+    },
+  );
+ }
+
+      
    return savedTask;
  }
 
@@ -445,26 +451,30 @@ export class TasksService {
 
      const savedTask = await this.repo.save(task);
 
-     if (userId && oldStatus !== status) {
-       const user = await this.userRepo.findOne({
-         where: { id: userId },
-     });
+     const user = await this.userRepo.findOne({
+       where: {
+       id: userId,
+     },
+   });
 
-     if (user) {
-       await this.activityService.log(
-         ActivityAction.TASK_STATUS_CHANGED,
-         task.project,
-         user,
-         savedTask,
-        {
-          oldStatus,
-          newStatus: status,
-        },
-      );
-    }
+  if (!user) {
+    throw new NotFoundException('Updating user not found');
   }
 
-  return savedTask;
+  if (oldStatus !== savedTask.status) {
+    await this.activityService.log(
+      ActivityAction.TASK_STATUS_CHANGED,
+      task.project,
+      user,
+      savedTask,
+     {
+       oldStatus,
+       newStatus: savedTask.status,
+     },
+   );
+ }
+
+ return savedTask;
 }
 
   async deleteTask(
@@ -486,24 +496,26 @@ export class TasksService {
     return null;
   }
 
-  if (userId) {
-    const user = await this.userRepo.findOne({
-      where: { id: userId },
-    });
+  const user = await this.userRepo.findOne({
+    where: {
+      id: userId,
+    },
+  });
 
-    if (user) {
-      await this.activityService.log(
-        ActivityAction.TASK_DELETED,
-        task.project,
-        user,
-        task,
-        {
-          title: task.title,
-        },
-      );
-    }
+  if (!user) {
+    throw new NotFoundException('Deleting user not found');
   }
 
-  return this.repo.remove(task);
+  await this.activityService.log(
+    ActivityAction.TASK_DELETED,
+    task.project,
+    user,
+    task,
+   {
+     title: task.title,
+   },
+ );
+
+ return this.repo.remove(task);
 }
 }
