@@ -138,7 +138,7 @@ export class ProjectMembersService {
       relations: ["project", "user"],
     });
 
-    if (!member) {
+    if (!member) {     
       throw new NotFoundException("Member not found");
     }
 
