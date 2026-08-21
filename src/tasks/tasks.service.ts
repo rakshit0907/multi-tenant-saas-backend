@@ -307,6 +307,7 @@ export class TasksService {
     const oldPriority = task.priority;
     const oldStatus = task.status;
     const oldAssigneeId = task.assignee?.id;
+    const oldAssigneeName = task.assignee?.name ?? null;
 
     task.title = title;
     task.description = description;
@@ -405,6 +406,16 @@ export class TasksService {
   const newAssigneeId = savedTask.assignee?.id;
 
   if (oldAssigneeId !== newAssigneeId) {
+    const oldAssigneeName = task.assignee?.name ?? null;
+    let newAssigneeName: string | null = null;
+    if (savedTask.assignee?.id) {
+      const newAssignee = await this.userRepo.findOne({
+        where: {
+          id: savedTask.assignee.id,
+        },
+      });
+      newAssigneeName = newAssignee?.name ?? null;
+    }
     await this.activityService.log(
       ActivityAction.TASK_ASSIGNED,
       task.project,
@@ -413,6 +424,8 @@ export class TasksService {
      {
       oldAssigneeId: oldAssigneeId ?? null,
       newAssigneeId: newAssigneeId ?? null,
+      oldAssigneeName,
+      newAssigneeName,
     },
   );
  }
