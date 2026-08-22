@@ -11,6 +11,8 @@ import {
 } from '@nestjs/common';
 import { ActivityService } from '../activity/activity.service';
 import { ActivityAction } from '../activity/activity.entity';
+import { NotificationService } from '../notifications/notification.service';
+import { NotificationType } from '../notifications/notification.entity';
 @Injectable()
 export class TasksService {
   constructor(
@@ -27,6 +29,7 @@ export class TasksService {
     private memberRepo: Repository<ProjectMember>,
 
     private activityService: ActivityService,
+    private notificationService: NotificationService,
     ) {}
   
  async toggleComplete(
@@ -240,7 +243,19 @@ export class TasksService {
         title: savedTask.title,
       },
     );
-
+     if (assignee && assignee.id !== creator.id) {
+       await this.notificationService.create(
+         assignee,
+         NotificationType.TASK_ASSIGNED,
+         'New Task Assigned',
+         `${creator.name} assigned "${savedTask.title}" to you`,
+          project,
+        {
+          taskId: savedTask.id,
+           projectId: project.id,
+        },
+     );
+   }
    return savedTask;
   }
 
@@ -375,18 +390,53 @@ export class TasksService {
  );
 
 // Status changed
- if (oldStatus !== task.status) {
-   await this.activityService.log(
-     ActivityAction.TASK_STATUS_CHANGED,
-     task.project,
-     user,
-     savedTask,
-     {
-       oldStatus,
-       newStatus: task.status,
-     },
-   );
+ // Status changed
+if (oldStatus !== task.status) {
+  await this.activityService.log(
+    ActivityAction.TASK_STATUS_CHANGED,
+    task.project,
+    user,
+    savedTask,
+    {
+      oldStatus,
+      newStatus: task.status,
+    },
+  );
+
+  if (
+    savedTask.assignee &&
+    savedTask.assignee.id !== user.id
+  ) {
+    const notificationType =
+        savedTask.status === TaskStatus.COMPLETED
+            ? NotificationType.TASK_COMPLETED
+            : NotificationType.TASK_STATUS_CHANGED;
+
+    const title =
+        savedTask.status === TaskStatus.COMPLETED
+            ? 'Task Completed'
+            : 'Task Status Changed';
+
+    const message =
+        savedTask.status === TaskStatus.COMPLETED
+            ? `${user.name} completed "${savedTask.title}"`
+            : `${user.name} changed "${savedTask.title}" from ${oldStatus} to ${savedTask.status}`;
+
+    await this.notificationService.create(
+      savedTask.assignee,
+      notificationType,
+      title,
+      message,
+      task.project,
+      {
+        taskId: savedTask.id,
+        projectId: task.project.id,
+        oldStatus,
+        newStatus: savedTask.status,
+      },
+    );
   }
+}
 
 // Priority changed
   if (oldPriority !== task.priority) {
@@ -405,29 +455,43 @@ export class TasksService {
 // Assignee changed
   const newAssigneeId = savedTask.assignee?.id;
 
-  if (oldAssigneeId !== newAssigneeId) {
-    const oldAssigneeName = task.assignee?.name ?? null;
-    let newAssigneeName: string | null = null;
-    if (savedTask.assignee?.id) {
-      const newAssignee = await this.userRepo.findOne({
-        where: {
-          id: savedTask.assignee.id,
-        },
-      });
-      newAssigneeName = newAssignee?.name ?? null;
-    }
-    await this.activityService.log(
-      ActivityAction.TASK_ASSIGNED,
-      task.project,
-      user,
-      savedTask,
-     {
+if (oldAssigneeId !== newAssigneeId) {
+  let newAssignee: User | null = null;
+
+  if (newAssigneeId) {
+    newAssignee = await this.userRepo.findOne({
+      where: {
+        id: newAssigneeId,
+      },
+    });
+  }
+
+  await this.activityService.log(
+    ActivityAction.TASK_ASSIGNED,
+    task.project,
+    user,
+    savedTask,
+    {
       oldAssigneeId: oldAssigneeId ?? null,
       newAssigneeId: newAssigneeId ?? null,
       oldAssigneeName,
-      newAssigneeName,
+      newAssigneeName: newAssignee?.name ?? null,
     },
   );
+
+  if (newAssignee && newAssignee.id !== user.id) {
+    await this.notificationService.create(
+      newAssignee,
+      NotificationType.TASK_ASSIGNED,
+      'Task Assigned',
+      `${user.name} assigned "${savedTask.title}" to you`,
+      task.project,
+      {
+        taskId: savedTask.id,
+        projectId: task.project.id,
+      },
+    );
+  }
  }
 
       
