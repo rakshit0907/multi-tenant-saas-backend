@@ -31,7 +31,7 @@ export class TasksController {
     @Param('projectId') projectId: string,
     @Req() req: any,
   ) {
-    return this.tasksService.getTasks(projectId, req.user.tenantId,);   
+    return this.tasksService.getTasks(projectId, req.user.tenantId, req.user.id,);   
   }
   @Get('project/:projectId/stats')
 getStats(
@@ -41,6 +41,7 @@ getStats(
   return this.tasksService.getStats(
     projectId,
     req.user.tenantId,
+      req.user.id,
   );
 }
   @Patch(':id/status')
@@ -85,6 +86,6 @@ getStats(
     @Param('id') id: string,
     @Req() req: any,
   ) {
-    return this.tasksService.getTask(id, req.user.tenantId,);
+    return this.tasksService.getTask(id, req.user.tenantId,  req.user.id,);
   }
 }

@@ -8,11 +8,13 @@ import { ProjectMember } from '../project-members/project-member.entity';
 import {
   BadRequestException,
   NotFoundException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { ActivityService } from '../activity/activity.service';
 import { ActivityAction } from '../activity/activity.entity';
 import { NotificationService } from '../notifications/notification.service';
 import { NotificationType } from '../notifications/notification.entity';
+import { ProjectRole } from '../common/enums/project-role.enum';
 @Injectable()
 export class TasksService {
   constructor(
@@ -51,6 +53,26 @@ export class TasksService {
     return null;
   }
 
+  if (!userId) {
+     throw new ForbiddenException(
+       'Authenticated user is required',
+   );
+ }
+
+ const membership = await this.getMembership(
+   task.project.id,
+   userId,
+ );
+
+ if (
+   membership.role !== ProjectRole.OWNER &&
+   task.assignee?.id !== userId
+ ) {
+   throw new ForbiddenException(
+     'You can only complete tasks assigned to you',
+   );
+ }
+
   task.completed = !task.completed;
 
   const savedTask = await this.repo.save(task);
@@ -77,9 +99,13 @@ export class TasksService {
    return savedTask;
 }   
 
- async getTask(id: string, tenantId: string) {
-  return this.repo.findOne({
-    where: { 
+ async getTask(
+  id: string,
+  tenantId: string,
+  userId?: string,
+) {
+  const task = await this.repo.findOne({
+    where: {
       id,
       project: {
         tenant: {
@@ -92,15 +118,34 @@ export class TasksService {
       'project',
     ],
   });
- }
+
+  if (!task) {
+    throw new NotFoundException('Task not found');
+  }
+
+  if (!userId) {
+    throw new ForbiddenException(
+      'Authenticated user is required',
+    );
+  }
+
+  await this.getMembership(
+    task.project.id,
+    userId,
+  );
+
+  return task;
+}
   
   async getStats(
   projectId: string,
   tenantId: string,
+  userId?: string,
 ) {
   const tasks = await this.getTasks(
     projectId,
     tenantId,
+    userId,
   );
 
   const today = new Date();
@@ -187,6 +232,17 @@ export class TasksService {
       );
     }
 
+    if (!createdById) {
+      throw new ForbiddenException(
+      'Authenticated user is required',
+      );
+    }
+
+    await this.verifyOwner(
+      projectId,
+      createdById,
+    );
+
     let assignee: User | null = null;
 
     if (assigneeId) {
@@ -262,6 +318,7 @@ export class TasksService {
   async getTasks(
     projectId: string,
     tenantId: string,
+    userId?: string,
   ) {
     const project = await this.projectRepo.findOne({
       where: {
@@ -278,6 +335,14 @@ export class TasksService {
         'Project not found or does not belong to your tenant',
       );
     }
+
+    if (!userId) {
+      throw new ForbiddenException(
+      'Authenticated user is required',
+    );
+  }
+
+  await this.getMembership(projectId, userId);
 
     return this.repo.find({
       where: {
@@ -318,6 +383,17 @@ export class TasksService {
     if (!task) {
       return null;
     }
+
+    if (!userId) {
+      throw new ForbiddenException(
+      'Authenticated user is required',
+    );
+  }
+
+  await this.verifyOwner(
+    task.project.id,
+    userId,
+  );
 
     const oldPriority = task.priority;
     const oldStatus = task.status;
@@ -519,6 +595,26 @@ if (oldAssigneeId !== newAssigneeId) {
        return null;
      }
 
+     if (!userId) {
+       throw new ForbiddenException(
+         'Authenticated user is required',
+     );
+   }
+
+   const membership = await this.getMembership(
+     task.project.id,
+     userId,
+   );
+
+  if (
+    membership.role !== ProjectRole.OWNER &&
+    task.assignee?.id !== userId
+  ) {
+   throw new ForbiddenException(
+     'You can only update tasks assigned to you',
+   );
+ }
+
      const oldStatus = task.status;
 
      if (status !== undefined) {
@@ -569,9 +665,22 @@ if (oldAssigneeId !== newAssigneeId) {
     relations: ['project'],
   });
 
-  if (!task) {
-    return null;
+   if (!task) {
+     return null;
   }
+
+
+  if (!userId) {
+  throw new ForbiddenException(
+    'Authenticated user is required',
+  );
+ }
+
+ await this.verifyOwner(
+   task.project.id,
+   userId,
+ );
+
 
   const user = await this.userRepo.findOne({
     where: {
@@ -594,5 +703,47 @@ if (oldAssigneeId !== newAssigneeId) {
  );
 
  return this.repo.remove(task);
+}
+
+private async getMembership(
+  projectId: string,
+  userId: string,
+) {
+  const membership = await this.memberRepo.findOne({
+    where: {
+      project: {
+        id: projectId,
+      },
+      user: {
+        id: userId,
+      },
+    },
+  });
+
+  if (!membership) {
+    throw new ForbiddenException(
+      'You are not a member of this project',
+    );
+  }
+
+  return membership;
+}
+
+private async verifyOwner(
+  projectId: string,
+  userId: string,
+) {
+  const membership = await this.getMembership(
+    projectId,
+    userId,
+  );
+
+  if (membership.role !== ProjectRole.OWNER) {
+    throw new ForbiddenException(
+      'Only project owners can perform this action',
+    );
+  }
+
+  return membership;
 }
 }
