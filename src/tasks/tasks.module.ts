@@ -8,9 +8,11 @@ import { User } from '../users/user.entity';
 import { ProjectMember } from '../project-members/project-member.entity';
 import { ActivityModule } from '../activity/activity.module';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { TaskComment } from './task-comment.entity';
+import { TaskCommentsService } from './task-comments.service';
 @Module({
-  imports: [TypeOrmModule.forFeature([Task, Project, User, ProjectMember,]), ActivityModule, NotificationsModule, ],
+  imports: [TypeOrmModule.forFeature([Task, Project, User, ProjectMember, TaskComment,]), ActivityModule, NotificationsModule, ],
   controllers: [TasksController],
-  providers: [TasksService]
+  providers: [TasksService, TaskCommentsService,]
 })
 export class TasksModule {}

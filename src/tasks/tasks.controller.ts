@@ -3,10 +3,14 @@ import { TasksService } from './tasks.service';
 import { TaskPriority } from './task.entity';
 import { AuthGuard } from '@nestjs/passport';
 import { UpdateTaskDto } from './dto/update-task.dto';
+import { TaskCommentsService } from './task-comments.service';
 @Controller('tasks')
 @UseGuards(AuthGuard('jwt'))
 export class TasksController {
-  constructor(private tasksService: TasksService) {}
+  constructor(
+    private tasksService: TasksService,
+    private taskCommentsService: TaskCommentsService,
+  ) {}
 
   @Post('project/:projectId')
   createTask(
@@ -22,6 +26,44 @@ export class TasksController {
       body.status,
       body.dueDate ? new Date(body.dueDate) : undefined,
       body.assigneeId,
+      req.user.id,
+    );
+  }
+
+  @Post(':taskId/comments')
+  addComment(
+    @Param('taskId') taskId: string,
+    @Body() body: { content: string },
+    @Req() req: any,
+  ) {
+   return this.taskCommentsService.addComment(
+     taskId,
+     body.content,
+     req.user.tenantId,
+     req.user.id,
+   );
+  }
+
+  @Get(':taskId/comments')
+  getComments(
+    @Param('taskId') taskId: string,
+    @Req() req: any,
+  ) {
+    return this.taskCommentsService.getComments(
+      taskId,
+      req.user.tenantId,
+      req.user.id,
+    );
+  }
+
+  @Delete('comments/:commentId')
+  deleteComment(
+    @Param('commentId') commentId: string,
+    @Req() req: any,
+  ) {
+    return this.taskCommentsService.deleteComment(
+      commentId,
+      req.user.tenantId,
       req.user.id,
     );
   }
