@@ -26,7 +26,7 @@ export class TasksController {
       body.status,
       body.dueDate ? new Date(body.dueDate) : undefined,
       body.assigneeId,
-      req.user.id,
+      req.user.userId,
     );
   }
 
@@ -40,7 +40,7 @@ export class TasksController {
      taskId,
      body.content,
      req.user.tenantId,
-     req.user.id,
+     req.user.userId,
    );
   }
 
@@ -52,7 +52,7 @@ export class TasksController {
     return this.taskCommentsService.getComments(
       taskId,
       req.user.tenantId,
-      req.user.id,
+      req.user.userId,
     );
   }
 
@@ -64,7 +64,7 @@ export class TasksController {
     return this.taskCommentsService.deleteComment(
       commentId,
       req.user.tenantId,
-      req.user.id,
+      req.user.userId,
     );
   }
 
@@ -73,7 +73,7 @@ export class TasksController {
     @Param('projectId') projectId: string,
     @Req() req: any,
   ) {
-    return this.tasksService.getTasks(projectId, req.user.tenantId, req.user.id,);   
+    return this.tasksService.getTasks(projectId, req.user.tenantId, req.user.userId,);   
   }
   @Get('project/:projectId/stats')
 getStats(
@@ -83,7 +83,7 @@ getStats(
   return this.tasksService.getStats(
     projectId,
     req.user.tenantId,
-      req.user.id,
+      req.user.userId,
   );
 }
   @Patch(':id/status')
@@ -99,7 +99,7 @@ getStats(
       id,
       body.status,
       req.user.tenantId,
-      req.user.id,
+      req.user.userId,
     );
   }
 
@@ -110,17 +110,17 @@ getStats(
     @Body() body,
     @Req() req: any,
   ) {
-    return this.tasksService.updateTask(id, body.title!, body.description ?? '', body.priority ?? TaskPriority.MEDIUM, req.user.tenantId, body.status, body.dueDate ? new Date(body.dueDate) : undefined, body.assigneeId, req.user.id,
+    return this.tasksService.updateTask(id, body.title!, body.description ?? '', body.priority ?? TaskPriority.MEDIUM, req.user.tenantId, body.status, body.dueDate ? new Date(body.dueDate) : undefined, body.assigneeId, req.user.userId,
 );
 
   }
   @Patch(':id/toggle')
   toggle(@Param('id') id: string, @Req() req: any,) {
-    return this.tasksService.toggleComplete(id, req.user.tenantId, req.user.id,);
+    return this.tasksService.toggleComplete(id, req.user.tenantId, req.user.userId,);
 }
   @Delete(':id')
   delete(@Param('id') id: string, @Req() req: any,) {
-    return this.tasksService.deleteTask(id, req.user.tenantId, req.user.id,);
+    return this.tasksService.deleteTask(id, req.user.tenantId, req.user.userId,);
   }
 
   @Get(':id')
@@ -128,6 +128,6 @@ getStats(
     @Param('id') id: string,
     @Req() req: any,
   ) {
-    return this.tasksService.getTask(id, req.user.tenantId,  req.user.id,);
+    return this.tasksService.getTask(id, req.user.tenantId,  req.user.userId,);
   }
 }
