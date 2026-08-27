@@ -1,16 +1,63 @@
-import { Controller,Post,Get,Body,Req,UseGuards,Patch,Param,Delete, BadRequestException,} from '@nestjs/common';
+import { Controller,Post,Get,Body,Req,UseGuards,Patch,Param,Delete, BadRequestException, UploadedFile, UseInterceptors, ParseFilePipe, MaxFileSizeValidator,} from '@nestjs/common';
 import { TasksService } from './tasks.service';
 import { TaskPriority } from './task.entity';
 import { AuthGuard } from '@nestjs/passport';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { TaskCommentsService } from './task-comments.service';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import { extname } from 'path';
+import { TaskAttachmentsService } from './task-attachments.service';
+import { Res } from '@nestjs/common';
+import { Response } from 'express';
 @Controller('tasks')
 @UseGuards(AuthGuard('jwt'))
 export class TasksController {
   constructor(
     private tasksService: TasksService,
     private taskCommentsService: TaskCommentsService,
+    private readonly taskAttachmentsService: TaskAttachmentsService,
   ) {}
+  
+  @Post(':taskId/attachments')
+  @UseInterceptors(
+    FileInterceptor('file', {
+     storage: diskStorage({
+       destination: './uploads/task-attachments',
+
+       filename: (req, file, callback) => {
+         const uniqueName =
+           `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
+
+           callback(
+             null,
+             `${uniqueName}${extname(file.originalname)}`,
+           );
+        },
+      }),
+   }),
+ )
+ uploadAttachment(
+   @Param('taskId') taskId: string,
+   @UploadedFile(
+     new ParseFilePipe({
+       validators: [
+         new MaxFileSizeValidator({
+           maxSize: 10 * 1024 * 1024,
+         }),
+       ],
+     }),
+   )
+   file: Express.Multer.File,
+   @Req() req: any,
+ ) {
+   return this.taskAttachmentsService.createAttachment(
+     taskId,
+     req.user.tenantId,
+     req.user.userId,
+     file,
+   );
+ }
 
   @Post('project/:projectId')
   createTask(
@@ -55,6 +102,49 @@ export class TasksController {
       req.user.userId,
     );
   }
+
+  @Get(':taskId/attachments')
+  getAttachments(
+    @Param('taskId') taskId: string,
+    @Req() req: any,
+  ) {
+   return this.taskAttachmentsService.getAttachments(
+     taskId,
+     req.user.tenantId,
+     req.user.userId,
+   );
+  }
+
+  @Get('attachments/:attachmentId/download')
+  async downloadAttachment(
+    @Param('attachmentId') attachmentId: string,
+    @Req() req: any,
+    @Res() res: Response,
+  ) {
+    const attachment =
+       await this.taskAttachmentsService.getAttachment(
+         attachmentId,
+         req.user.tenantId,
+         req.user.userId,
+       );
+
+    return res.download(
+      attachment.filePath,
+      attachment.originalName,
+    );
+  }
+
+  @Delete('attachments/:attachmentId')
+  deleteAttachment(
+    @Param('attachmentId') attachmentId: string,
+    @Req() req: any,
+  ) {
+   return this.taskAttachmentsService.deleteAttachment(
+     attachmentId,
+     req.user.tenantId,
+     req.user.userId,
+   );
+ }
 
   @Delete('comments/:commentId')
   deleteComment(

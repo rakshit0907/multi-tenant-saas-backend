@@ -10,9 +10,11 @@ import { ActivityModule } from '../activity/activity.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { TaskComment } from './task-comment.entity';
 import { TaskCommentsService } from './task-comments.service';
+import { TaskAttachment } from './task-attachment.entity';
+import { TaskAttachmentsService } from './task-attachments.service';
 @Module({
-  imports: [TypeOrmModule.forFeature([Task, Project, User, ProjectMember, TaskComment,]), ActivityModule, NotificationsModule, ],
+  imports: [TypeOrmModule.forFeature([Task, Project, User, ProjectMember, TaskComment, TaskAttachment,]), ActivityModule, NotificationsModule, ],
   controllers: [TasksController],
-  providers: [TasksService, TaskCommentsService,]
+  providers: [TasksService, TaskCommentsService, TaskAttachmentsService,]
 })
 export class TasksModule {}
