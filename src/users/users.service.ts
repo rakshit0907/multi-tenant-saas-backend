@@ -18,6 +18,16 @@ export class UsersService {
   async findByEmail(email: string): Promise<User | null> {
   return this.userRepository.findOne({ where: { email }, relations: ['tenant'],  });
 }
+
+async findByEmailWithPassword(email: string): Promise<User | null> {
+  return this.userRepository
+    .createQueryBuilder('user')
+    .addSelect('user.password')
+    .leftJoinAndSelect('user.tenant', 'tenant')
+    .where('user.email = :email', { email })
+    .getOne();
+}
+
 findAll() {
   const tenantId = this.cls.get('tenantId');
   

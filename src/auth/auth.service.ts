@@ -76,16 +76,14 @@ export class AuthService {
 
   console.log('================ LOGIN START ================');
   console.log('EMAIL RECEIVED:', email);
-  console.log('PASSWORD RECEIVED:', password);
 
   if (!email || !password) {
     console.log('❌ Missing email or password');
     throw new BadRequestException('Email and password are required');
   }
 
-  const user = await this.usersService.findByEmail(email);
+  const user = await this.usersService.findByEmailWithPassword(email);
 
-  console.log('USER FOUND:', user);
 
   if (!user) {
     console.log('❌ USER NOT FOUND');
@@ -107,7 +105,6 @@ export class AuthService {
     role: user.role,
   };
 
-  console.log('JWT PAYLOAD:', payload);
 
   const token = this.jwtService.sign(payload);
 
