@@ -10,6 +10,7 @@ import { extname } from 'path';
 import { TaskAttachmentsService } from './task-attachments.service';
 import { Res } from '@nestjs/common';
 import { Response } from 'express';
+import * as mime from 'mime-types';
 @Controller('tasks')
 @UseGuards(AuthGuard('jwt'))
 export class TasksController {
@@ -51,6 +52,11 @@ export class TasksController {
    file: Express.Multer.File,
    @Req() req: any,
  ) {
+  const detectedMimeType = 
+    mime.lookup(file.originalname) || file.mimetype || 'application/octet-stream';
+
+  file.mimetype = detectedMimeType;
+    
    return this.taskAttachmentsService.createAttachment(
      taskId,
      req.user.tenantId,
