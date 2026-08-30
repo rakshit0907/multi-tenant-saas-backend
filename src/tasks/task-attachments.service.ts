@@ -6,6 +6,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as fs from 'fs/promises';
+import { extname, join } from 'path';
 import { TaskAttachment } from './task-attachment.entity';
 import { Task } from './task.entity';
 import { User } from '../users/user.entity';
@@ -69,39 +70,76 @@ export class TaskAttachmentsService {
   }
 
   async createAttachment(
-    taskId: string,
-    tenantId: string,
-    userId: string,
-    file: Express.Multer.File,
-  ) {
-    const task = await this.getAuthorizedTask(
-      taskId,
-      tenantId,
-      userId,
-    );
+  taskId: string,
+  tenantId: string,
+  userId: string,
+  file: Express.Multer.File,
+) {
+  // Authorization happens BEFORE anything is written to disk.
+  const task = await this.getAuthorizedTask(
+    taskId,
+    tenantId,
+    userId,
+  );
 
-    const user = await this.userRepo.findOne({
-      where: {
-        id: userId,
-      },
-    });
+  const user = await this.userRepo.findOne({
+    where: {
+      id: userId,
+    },
+  });
 
-    if (!user) {
-      throw new NotFoundException('User not found');
-    }
+  if (!user) {
+    throw new NotFoundException('User not found');
+  }
 
+  const uploadDirectory = join(
+    'uploads',
+    'task-attachments',
+  );
+
+  await fs.mkdir(uploadDirectory, {
+    recursive: true,
+  });
+
+  const uniqueName =
+    `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
+
+  const fileName =
+    `${uniqueName}${extname(file.originalname)}`;
+
+  const filePath = join(
+    uploadDirectory,
+    fileName,
+  );
+
+  await fs.writeFile(
+    filePath,
+    file.buffer,
+  );
+
+  try {
     const attachment = this.attachmentRepo.create({
       originalName: file.originalname,
-      fileName: file.filename,
-      filePath: file.path,
+      fileName,
+      filePath,
       mimeType: file.mimetype,
       size: file.size,
       task,
       uploadedBy: user,
     });
 
-    return this.attachmentRepo.save(attachment);
+    return await this.attachmentRepo.save(
+      attachment,
+    );
+  } catch (error) {
+    // DB save failed, so don't leave an orphan physical file.
+    try {
+      await fs.unlink(filePath);
+    } catch (_) {}
+
+    throw error;
   }
+}
 
   async getAttachments(
     taskId: string,
@@ -132,17 +170,17 @@ export class TaskAttachmentsService {
     tenantId: string,
     userId: string,
   ) {
-    const attachment = await this.attachmentRepo.findOne({
-      where: {
-        id: attachmentId,
-      },
-      relations: [
-        'task',
-        'task.project',
-        'task.project.tenant',
-        'uploadedBy',
-      ],
-    });
+    const attachment = await this.attachmentRepo
+      .createQueryBuilder('attachment')
+      .addSelect('attachment.filePath')
+      .leftJoinAndSelect('attachment.task', 'task')
+      .leftJoinAndSelect('task.project', 'project')
+      .leftJoinAndSelect('project.tenant', 'tenant')
+      .leftJoinAndSelect('attachment.uploadedBy', 'uploadedBy')
+      .where('attachment.id = :attachmentId', {
+        attachmentId,
+      })
+       .getOne();
 
     if (!attachment) {
       throw new NotFoundException('Attachment not found');
@@ -173,28 +211,56 @@ export class TaskAttachmentsService {
   }
 
   async deleteAttachment(
-    attachmentId: string,
-    tenantId: string,
-    userId: string,
-  ) {
-    const attachment = await this.getAttachment(
-      attachmentId,
-      tenantId,
-      userId,
+  attachmentId: string,
+  tenantId: string,
+  userId: string,
+) {
+  const attachment = await this.getAttachment(
+    attachmentId,
+    tenantId,
+    userId,
+  );
+
+  const membership = await this.memberRepo.findOne({
+    where: {
+      project: {
+        id: attachment.task.project.id,
+      },
+      user: {
+        id: userId,
+      },
+    },
+  });
+
+  if (!membership) {
+    throw new ForbiddenException(
+      'You are not a member of this project',
     );
-
-    try {
-        await fs.unlink(attachment.filePath);
-    } catch (_) {
-        // Ignore if file is already missing.
-    }
-
-    // For now this removes the database record.
-    // Physical file deletion will be handled with storage logic.
-    await this.attachmentRepo.remove(attachment);
-
-    return {
-      message: 'Attachment deleted successfully',
-    };
   }
+
+  const isOwner = membership.role === 'OWNER';
+
+  const isUploader =
+    attachment.uploadedBy.id === userId;
+
+  if (!isOwner && !isUploader) {
+    throw new ForbiddenException(
+      'You do not have permission to delete this attachment',
+    );
+  }
+
+  try {
+    await fs.unlink(attachment.filePath);
+  } catch (error: any) {
+    if (error.code !== 'ENOENT') {
+      throw error;
+    }
+  }
+
+  await this.attachmentRepo.remove(attachment);
+
+  return {
+    message: 'Attachment deleted successfully',
+  };
+}
 }

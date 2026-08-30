@@ -1,16 +1,16 @@
-import { Controller,Post,Get,Body,Req,UseGuards,Patch,Param,Delete, BadRequestException, UploadedFile, UseInterceptors, ParseFilePipe, MaxFileSizeValidator,} from '@nestjs/common';
+import { Controller,Post,Get,Body,Req,UseGuards,Patch,Param,Delete, BadRequestException, UploadedFile, UseInterceptors, ParseFilePipe, MaxFileSizeValidator, FileTypeValidator,} from '@nestjs/common';
 import { TasksService } from './tasks.service';
 import { TaskPriority } from './task.entity';
 import { AuthGuard } from '@nestjs/passport';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { TaskCommentsService } from './task-comments.service';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
-import { extname } from 'path';
+import { memoryStorage } from 'multer';   
 import { TaskAttachmentsService } from './task-attachments.service';
 import { Res } from '@nestjs/common';
 import { Response } from 'express';
 import * as mime from 'mime-types';
+
 @Controller('tasks')
 @UseGuards(AuthGuard('jwt'))
 export class TasksController {
@@ -23,20 +23,8 @@ export class TasksController {
   @Post(':taskId/attachments')
   @UseInterceptors(
     FileInterceptor('file', {
-     storage: diskStorage({
-       destination: './uploads/task-attachments',
-
-       filename: (req, file, callback) => {
-         const uniqueName =
-           `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
-
-           callback(
-             null,
-             `${uniqueName}${extname(file.originalname)}`,
-           );
-        },
-      }),
-   }),
+     storage: memoryStorage(),
+     }),
  )
  uploadAttachment(
    @Param('taskId') taskId: string,
@@ -45,6 +33,10 @@ export class TasksController {
        validators: [
          new MaxFileSizeValidator({
            maxSize: 10 * 1024 * 1024,
+         }),
+         new FileTypeValidator({
+          fileType:
+          /(jpg|jpeg|png|webp|pdf|doc|docx|xls|xlsx|csv|txt|zip)$/,
          }),
        ],
      }),

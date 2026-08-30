@@ -19,7 +19,7 @@ export class TaskAttachment {
   @Column()
   fileName!: string;
 
-  @Column()
+  @Column({ select: false })
   filePath!: string;
 
   @Column()
