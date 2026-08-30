@@ -1,6 +1,6 @@
-import { Controller,Post,Get,Body,Req,UseGuards,Patch,Param,Delete, BadRequestException, UploadedFile, UseInterceptors, ParseFilePipe, MaxFileSizeValidator, FileTypeValidator,} from '@nestjs/common';
+import { Controller,Post,Get,Body,Req,UseGuards,Patch,Param,Delete, BadRequestException, UploadedFile, UseInterceptors, ParseFilePipe, MaxFileSizeValidator, FileTypeValidator, Query,} from '@nestjs/common';
 import { TasksService } from './tasks.service';
-import { TaskPriority } from './task.entity';
+import { TaskPriority, TaskStatus, } from './task.entity';
 import { AuthGuard } from '@nestjs/passport';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { TaskCommentsService } from './task-comments.service';
@@ -160,15 +160,31 @@ export class TasksController {
   getTasks(
     @Param('projectId') projectId: string,
     @Req() req: any,
+    @Query('search') search?: string,
+    @Query('status') status?: TaskStatus,
+    @Query('priority') priority?: TaskPriority,
+    @Query('assigneeId') assigneeId?: string,
+    @Query('sortBy') sortBy?: string,
+    @Query('sortOrder') sortOrder?: 'ASC' | 'DESC',
+
   ) {
-    return this.tasksService.getTasks(projectId, req.user.tenantId, req.user.userId,);   
+    return this.tasksService.getTasks(projectId, req.user.tenantId, req.user.userId,
+      {
+        search,
+        status,
+        priority,
+        assigneeId,
+        sortBy,
+        sortOrder,
+      },
+    );   
   }
   @Get('project/:projectId/stats')
-getStats(
-  @Param('projectId') projectId: string,
-  @Req() req: any,
-) {
-  return this.tasksService.getStats(
+  getStats(
+    @Param('projectId') projectId: string,
+    @Req() req: any,
+ ) {
+   return this.tasksService.getStats(
     projectId,
     req.user.tenantId,
       req.user.userId,

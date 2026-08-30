@@ -319,6 +319,14 @@ export class TasksService {
     projectId: string,
     tenantId: string,
     userId?: string,
+    filters?: {
+      search?: string;
+      status?: TaskStatus;
+      priority?: TaskPriority;
+      assigneeId?: string;
+      sortBy?: string;
+      sortOrder?: 'ASC' | 'DESC';
+    },
   ) {
     const project = await this.projectRepo.findOne({
       where: {
@@ -344,18 +352,84 @@ export class TasksService {
 
   await this.getMembership(projectId, userId);
 
-    return this.repo.find({
-      where: {
-        project: {
-          id: projectId,
-          tenant: {
-            id: tenantId,
-          },
-        },
-      },
-      relations: ['project', 'assignee'],
+  const query = this.repo
+    .createQueryBuilder('task')
+    .leftJoinAndSelect('task.project', 'project')
+    .leftJoinAndSelect('task.assignee', 'assignee')
+    .leftJoin('project.tenant', 'tenant')
+    .where('project.id = :projectId', {
+      projectId,
+    })
+    .andWhere('tenant.id = :tenantId', {
+      tenantId,
     });
-  }
+    // Search title + description
+    if (filters?.search?.trim()) {
+      query.andWhere(
+        `(
+          task.title ILIKE :search
+          OR task.description ILIKE :search
+        )`,
+        {
+          search: `%${filters.search.trim()}%`,
+        },
+      );
+    }
+
+    // Status filter
+    if (filters?.status) {
+      query.andWhere(
+        'task.status = :status',
+        {
+          status: filters.status,
+        },
+      );
+    }
+
+    //Priority filter
+    if (filters?.priority) {
+      query.andWhere(
+        'task.priority = :priority',
+        {
+          priority: filters.priority,
+        },
+      );
+    }
+
+    //Assignee filter
+    if (filters?.assigneeId) {
+      query.andWhere(
+        'assignee.id = :assigneeId',
+        {
+          assigneeId: filters.assigneeId,
+        },
+      );
+    }
+
+     const allowedSortFields: Record<string, string> = {
+       dueDate: 'task.dueDate',
+       title: 'task.title',
+       status: 'task.status',
+       priority: 'task.priority',
+    };
+
+    const sortColumn =
+      allowedSortFields[filters?.sortBy ?? ''] ??
+      'task.dueDate';
+
+    const sortOrder =
+      filters?.sortOrder === 'DESC'
+        ? 'DESC'
+        : 'ASC';
+
+    query.orderBy(
+      sortColumn,
+      sortOrder,
+      'NULLS LAST',
+    );
+
+    return query.getMany();
+  } 
 
   async updateTask(
     id: string,
