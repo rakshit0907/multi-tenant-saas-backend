@@ -10,6 +10,7 @@ import { TaskAttachmentsService } from './task-attachments.service';
 import { Res } from '@nestjs/common';
 import { Response } from 'express';
 import * as mime from 'mime-types';
+import { GetTasksQueryDto } from './dto/get-tasks-query.dto';
 
 @Controller('tasks')
 @UseGuards(AuthGuard('jwt'))
@@ -155,30 +156,21 @@ export class TasksController {
       req.user.userId,
     );
   }
-
+  
   @Get('project/:projectId')
   getTasks(
     @Param('projectId') projectId: string,
     @Req() req: any,
-    @Query('search') search?: string,
-    @Query('status') status?: TaskStatus,
-    @Query('priority') priority?: TaskPriority,
-    @Query('assigneeId') assigneeId?: string,
-    @Query('sortBy') sortBy?: string,
-    @Query('sortOrder') sortOrder?: 'ASC' | 'DESC',
-
+    @Query() query: GetTasksQueryDto,
   ) {
-    return this.tasksService.getTasks(projectId, req.user.tenantId, req.user.userId,
-      {
-        search,
-        status,
-        priority,
-        assigneeId,
-        sortBy,
-        sortOrder,
-      },
-    );   
-  }
+   return this.tasksService.getTasks(
+     projectId,
+     req.user.tenantId,
+     req.user.userId,
+     query,
+   );
+ }
+ 
   @Get('project/:projectId/stats')
   getStats(
     @Param('projectId') projectId: string,
