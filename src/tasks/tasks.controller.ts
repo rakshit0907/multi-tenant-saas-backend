@@ -11,7 +11,7 @@ import { Res } from '@nestjs/common';
 import { Response } from 'express';
 import * as mime from 'mime-types';
 import { GetTasksQueryDto } from './dto/get-tasks-query.dto';
-
+import { LabelsService } from './labels.service';
 @Controller('tasks')
 @UseGuards(AuthGuard('jwt'))
 export class TasksController {
@@ -19,6 +19,7 @@ export class TasksController {
     private tasksService: TasksService,
     private taskCommentsService: TaskCommentsService,
     private readonly taskAttachmentsService: TaskAttachmentsService,
+    private readonly labelsService: LabelsService,
   ) {}
   
   @Post(':taskId/attachments')
@@ -218,6 +219,36 @@ export class TasksController {
   delete(@Param('id') id: string, @Req() req: any,) {
     return this.tasksService.deleteTask(id, req.user.tenantId, req.user.userId,);
   }
+
+  @Post('project/:projectId/labels')
+  createLabel(
+    @Param('projectId') projectId: string,
+    @Body() body: {
+      name: string;
+      color?: string;
+    },
+    @Req() req: any,
+ ) {
+   return this.labelsService.createLabel(
+     projectId,
+     req.user.tenantId,
+     req.user.userId,
+     body.name,
+     body.color,
+   );
+ }
+
+ @Get('project/:projectId/labels')
+ getLabels(
+   @Param('projectId') projectId: string,
+   @Req() req: any,
+ ) {
+   return this.labelsService.getLabels(
+     projectId,
+     req.user.tenantId,
+     req.user.userId,
+   );
+ }
 
   @Get(':id')
   getTask(
