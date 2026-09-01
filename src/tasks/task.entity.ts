@@ -3,8 +3,10 @@ import {
   PrimaryGeneratedColumn,
   Column,
   ManyToOne,
+  ManyToMany, 
+  JoinTable,
 } from 'typeorm';
-
+import { Label } from './label.entity';
 import { Project } from '../project/project.entity';
 import { User } from '../users/user.entity';
 export enum TaskPriority {
@@ -70,4 +72,16 @@ status!: TaskStatus;
       nullable: true },
   )
   assignee?: User;
+
+  @ManyToMany(
+  () => Label,
+  (label) => label.tasks,
+  {
+    cascade: false,
+  },
+)
+@JoinTable({
+  name: 'task_labels',
+})
+labels!: Label[];
 }

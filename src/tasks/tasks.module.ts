@@ -12,8 +12,9 @@ import { TaskComment } from './task-comment.entity';
 import { TaskCommentsService } from './task-comments.service';
 import { TaskAttachment } from './task-attachment.entity';
 import { TaskAttachmentsService } from './task-attachments.service';
+import { Label } from './label.entity';
 @Module({
-  imports: [TypeOrmModule.forFeature([Task, Project, User, ProjectMember, TaskComment, TaskAttachment,]), ActivityModule, NotificationsModule, ],
+  imports: [TypeOrmModule.forFeature([Task, Label, Project, User, ProjectMember, TaskComment, TaskAttachment,]), ActivityModule, NotificationsModule, ],
   controllers: [TasksController],
   providers: [TasksService, TaskCommentsService, TaskAttachmentsService,]
 })

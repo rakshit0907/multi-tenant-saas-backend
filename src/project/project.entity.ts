@@ -9,6 +9,7 @@ import {
 import { ProjectMember } from '../project-members/project-member.entity';
 import { Tenant } from '../tenant/tenant.entity';
 import { Task } from '../tasks/task.entity';
+import { Label } from '../tasks/label.entity';
 
 @Entity()
 export class Project {
@@ -31,4 +32,10 @@ export class Project {
     (member) => member.project,
   )
   members!: ProjectMember[];
+
+  @OneToMany(
+  () => Label,
+  (label) => label.project,
+)
+labels!: Label[];
 }
