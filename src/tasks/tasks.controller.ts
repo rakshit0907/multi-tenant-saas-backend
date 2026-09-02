@@ -12,6 +12,8 @@ import { Response } from 'express';
 import * as mime from 'mime-types';
 import { GetTasksQueryDto } from './dto/get-tasks-query.dto';
 import { LabelsService } from './labels.service';
+import { CreateLabelDto } from './dto/create-label.dto';
+import { UpdateLabelDto } from './dto/update-label.dto';
 @Controller('tasks')
 @UseGuards(AuthGuard('jwt'))
 export class TasksController {
@@ -223,10 +225,7 @@ export class TasksController {
   @Post('project/:projectId/labels')
   createLabel(
     @Param('projectId') projectId: string,
-    @Body() body: {
-      name: string;
-      color?: string;
-    },
+    @Body() body: CreateLabelDto,
     @Req() req: any,
  ) {
    return this.labelsService.createLabel(
@@ -249,6 +248,37 @@ export class TasksController {
      req.user.userId,
    );
  }
+
+  @Patch('project/:projectId/labels/:labelId')
+  updateLabel(
+  @Param('projectId') projectId: string,
+  @Param('labelId') labelId: string,
+  @Body() body: UpdateLabelDto,
+  @Req() req: any,
+) {
+  return this.labelsService.updateLabel(
+    labelId,
+    projectId,
+    req.user.tenantId,
+    req.user.userId,
+    body.name,
+    body.color,
+  );
+}
+
+@Delete('project/:projectId/labels/:labelId')
+deleteLabel(
+  @Param('projectId') projectId: string,
+  @Param('labelId') labelId: string,
+  @Req() req: any,
+) {
+  return this.labelsService.deleteLabel(
+    labelId,
+    projectId,
+    req.user.tenantId,
+    req.user.userId,
+  );
+}
 
   @Get(':id')
   getTask(

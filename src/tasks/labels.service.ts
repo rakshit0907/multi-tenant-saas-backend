@@ -88,6 +88,118 @@ export class LabelsService {
     }
   }
 
+  private async getLabel(
+  labelId: string,
+  projectId: string,
+) {
+  const label = await this.labelRepo.findOne({
+    where: {
+      id: labelId,
+      project: {
+        id: projectId,
+      },
+    },
+    relations: ['project'],
+  });
+
+  if (!label) {
+    throw new NotFoundException(
+      'Label not found',
+    );
+  }
+
+  return label;
+}
+
+  async updateLabel(
+  labelId: string,
+  projectId: string,
+  tenantId: string,
+  userId: string,
+  name?: string,
+  color?: string,
+) {
+  await this.getProject(
+    projectId,
+    tenantId,
+  );
+
+  await this.verifyOwner(
+    projectId,
+    userId,
+  );
+
+  const label = await this.getLabel(
+    labelId,
+    projectId,
+  );
+
+  if (name !== undefined) {
+    const cleanName = name.trim();
+
+    if (!cleanName) {
+      throw new BadRequestException(
+        'Label name cannot be empty',
+      );
+    }
+
+    const existing = await this.labelRepo
+      .createQueryBuilder('label')
+      .where('label.projectId = :projectId', {
+        projectId,
+      })
+      .andWhere('LOWER(label.name) = LOWER(:name)', {
+        name: cleanName,
+      })
+      .andWhere('label.id != :labelId', {
+        labelId,
+      })
+      .getOne();
+
+    if (existing) {
+      throw new BadRequestException(
+        'A label with this name already exists',
+      );
+    }
+
+    label.name = cleanName;
+  }
+
+  if (color !== undefined) {
+    label.color = color;
+  }
+
+  return this.labelRepo.save(label);
+}
+
+ async deleteLabel(
+  labelId: string,
+  projectId: string,
+  tenantId: string,
+  userId: string,
+) {
+  await this.getProject(
+    projectId,
+    tenantId,
+  );
+
+  await this.verifyOwner(
+    projectId,
+    userId,
+  );
+
+  const label = await this.getLabel(
+    labelId,
+    projectId,
+  );
+
+  await this.labelRepo.remove(label);
+
+  return {
+    message: 'Label deleted successfully',
+  };
+}
+
   async createLabel(
     projectId: string,
     tenantId: string,
