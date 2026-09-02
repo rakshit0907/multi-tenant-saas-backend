@@ -15,6 +15,7 @@ import { ActivityAction } from '../activity/activity.entity';
 import { NotificationService } from '../notifications/notification.service';
 import { NotificationType } from '../notifications/notification.entity';
 import { ProjectRole } from '../common/enums/project-role.enum';
+import { Label } from './label.entity';
 @Injectable()
 export class TasksService {
   constructor(
@@ -26,6 +27,9 @@ export class TasksService {
 
     @InjectRepository(User)
     private userRepo: Repository<User>,
+
+    @InjectRepository(Label)
+    private labelRepo: Repository<Label>,
 
     @InjectRepository(ProjectMember)
     private memberRepo: Repository<ProjectMember>,
@@ -116,6 +120,7 @@ export class TasksService {
     relations: [
       'assignee',
       'project',
+      'labels',
     ],
   });
 
@@ -214,6 +219,7 @@ export class TasksService {
     dueDate?: Date,
     assigneeId?: string,
     createdById?: string,
+    labelIds?: string[],
    )
   {
     const project = await this.projectRepo.findOne({
@@ -268,6 +274,40 @@ export class TasksService {
      }
    }
 
+   let labels: Label[] = [];
+
+   if (labelIds !== undefined) {
+     const uniqueLabelIds = [...new Set(labelIds)];
+
+     if (uniqueLabelIds.length > 0) {
+       labels = await this.labelRepo
+         .createQueryBuilder('label')
+         .innerJoin(
+           'label.project',
+           'project',
+    )
+      .where(
+        'label.id IN (:...labelIds)',
+        {
+          labelIds: uniqueLabelIds,
+        },
+      )
+      .andWhere(
+        'project.id = :projectId',
+        {
+          projectId,
+        },
+      )
+      .getMany();
+
+    if (labels.length !== uniqueLabelIds.length) {
+      throw new BadRequestException(
+        'One or more labels are invalid for this project',
+      );
+    }
+  }
+}
+
    const task = this.repo.create({
     title,
     dueDate,
@@ -276,6 +316,7 @@ export class TasksService {
     status,
     project,
     assignee: assignee ?? undefined,
+    labels,
    });
 
    const savedTask = await this.repo.save(task);
@@ -353,10 +394,11 @@ export class TasksService {
   await this.getMembership(projectId, userId);
 
   const query = this.repo
-    .createQueryBuilder('task')
-    .leftJoinAndSelect('task.project', 'project')
-    .leftJoinAndSelect('task.assignee', 'assignee')
-    .leftJoin('project.tenant', 'tenant')
+  .createQueryBuilder('task')
+  .leftJoinAndSelect('task.project', 'project')
+  .leftJoinAndSelect('task.assignee', 'assignee')
+  .leftJoinAndSelect('task.labels', 'labels')
+  .leftJoin('project.tenant', 'tenant')
     .where('project.id = :projectId', {
       projectId,
     })
@@ -441,6 +483,7 @@ export class TasksService {
     dueDate?: Date,
     assigneeId?: string,
     userId?: string,
+    labelIds?: string[],
   ) {
 
     const task = await this.repo.findOne({
@@ -451,7 +494,7 @@ export class TasksService {
           },
         },
        },
-      relations: ['project', 'assignee'],
+      relations: ['project', 'assignee', 'labels',],
     });
 
     if (!task) {
@@ -515,7 +558,6 @@ export class TasksService {
         task.assignee = assignee;
       }
     }
-
     const savedTask = await this.repo.save(task);
 
     const user = await this.userRepo.findOne({

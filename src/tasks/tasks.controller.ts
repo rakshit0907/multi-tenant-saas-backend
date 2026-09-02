@@ -14,6 +14,7 @@ import { GetTasksQueryDto } from './dto/get-tasks-query.dto';
 import { LabelsService } from './labels.service';
 import { CreateLabelDto } from './dto/create-label.dto';
 import { UpdateLabelDto } from './dto/update-label.dto';
+import { CreateTaskDto } from './dto/create-task.dto';
 @Controller('tasks')
 @UseGuards(AuthGuard('jwt'))
 export class TasksController {
@@ -64,8 +65,9 @@ export class TasksController {
   @Post('project/:projectId')
   createTask(
     @Param('projectId') projectId: string,
-    @Body() body: any,
-    @Req() req: any,) {
+    @Body() body: CreateTaskDto,
+    @Req() req: any,
+  ) {
     return this.tasksService.createTask(
       body.title,
       body.description ?? '',
@@ -76,6 +78,7 @@ export class TasksController {
       body.dueDate ? new Date(body.dueDate) : undefined,
       body.assigneeId,
       req.user.userId,
+      body.labelIds,
     );
   }
 
@@ -209,7 +212,7 @@ export class TasksController {
     @Body() body,
     @Req() req: any,
   ) {
-    return this.tasksService.updateTask(id, body.title!, body.description ?? '', body.priority ?? TaskPriority.MEDIUM, req.user.tenantId, body.status, body.dueDate ? new Date(body.dueDate) : undefined, body.assigneeId, req.user.userId,
+    return this.tasksService.updateTask(id, body.title!, body.description ?? '', body.priority ?? TaskPriority.MEDIUM, req.user.tenantId, body.status, body.dueDate ? new Date(body.dueDate) : undefined, body.assigneeId, req.user.userId, body.labelIds,
 );
 
   }

@@ -1,20 +1,22 @@
 import {
   IsArray,
+  IsDateString,
   IsEnum,
   IsOptional,
   IsString,
-  IsDateString,
   IsUUID,
   MaxLength,
 } from 'class-validator';
 
-import { TaskPriority, TaskStatus } from '../task.entity';
+import {
+  TaskPriority,
+  TaskStatus,
+} from '../task.entity';
 
-export class UpdateTaskDto {
-  @IsOptional()
+export class CreateTaskDto {
   @IsString()
   @MaxLength(150)
-  title?: string;
+  title!: string;
 
   @IsOptional()
   @IsString()
