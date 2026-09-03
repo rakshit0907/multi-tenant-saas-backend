@@ -365,6 +365,7 @@ export class TasksService {
       status?: TaskStatus;
       priority?: TaskPriority;
       assigneeId?: string;
+      labelId?: string;
       sortBy?: string;
       sortOrder?: 'ASC' | 'DESC';
     },
@@ -417,6 +418,15 @@ export class TasksService {
         },
       );
     }
+
+    if (filters?.labelId) {
+      query.andWhere(
+        'labels.id = :labelId',
+      {
+        labelId: filters.labelId,
+      },
+   );
+  }
 
     // Status filter
     if (filters?.status) {

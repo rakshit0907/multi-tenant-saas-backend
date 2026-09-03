@@ -25,4 +25,8 @@ export class GetTasksQueryDto {
   @IsOptional()
   @IsIn(['ASC', 'DESC'])
   sortOrder?: 'ASC' | 'DESC';
+
+  @IsOptional()
+  @IsUUID()
+  labelId?: string;
 }
