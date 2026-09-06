@@ -50,7 +50,7 @@ export class TasksService {
       },
     },
    },
-    relations: ['project'],
+    relations: ['project', 'assignee'],
   });
 
   if (!task) {
