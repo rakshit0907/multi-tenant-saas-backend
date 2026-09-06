@@ -18,6 +18,15 @@ export class User {
   @Column({ select: false })
   password!: string;
 
+  @Column({ default: false })
+  isEmailVerified!: boolean;
+
+  @Column({ type: 'varchar', nullable: true, select: false })
+  emailVerificationToken!: string | null;
+
+  @Column({ type: 'timestamp', nullable: true, select: false })
+  emailVerificationExpiresAt!: Date | null;
+
   @CreateDateColumn()
   created_at!: Date;
 
