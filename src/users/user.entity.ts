@@ -18,8 +18,6 @@ export class User {
   @Column({ select: false })
   password!: string;
 
-  @Column({ default: 'admin' })
-
   @CreateDateColumn()
   created_at!: Date;
 
