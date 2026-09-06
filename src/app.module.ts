@@ -22,7 +22,7 @@ import { NotificationsModule } from './notifications/notifications.module';
       password: 'postgres',
       database: 'saas_db',
       autoLoadEntities: true,
-      synchronize: true,
+      synchronize: false,
       
       
     }),

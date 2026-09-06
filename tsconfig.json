@@ -25,7 +25,6 @@
     "strictBindCallApply": false,
     "noFallthroughCasesInSwitch": false,
     "useDefineForClassFields": false,
-    "synchronize": false,
-    "dropSchema": true
+    
   }
 }
