@@ -28,6 +28,23 @@ async findByEmailWithPassword(email: string): Promise<User | null> {
     .getOne();
 }
 
+async findByVerificationTokenHash(tokenHash: string,
+): Promise<User | null> {
+  return this.userRepository
+    .createQueryBuilder('user')
+    .addSelect('user.emailVerificationToken')
+    .addSelect('user.emailVerificationExpiresAt')
+    .where('user.emailVerificationToken = :tokenHash', {
+      tokenHash,
+    })
+    .getOne();
+}
+
+async save(user: User): Promise<User> {
+  return this.userRepository.save(user);
+}
+
+
 findAll() {
   const tenantId = this.cls.get('tenantId');
   

@@ -1,10 +1,11 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, } from '@nestjs/common';
 import { SignupDto } from './dto/signup.dto';
 import { LoginDto } from './dto/login.dto';
 import { UsersService } from '../users/users.service';
 import { TenantService } from '../tenant/tenant.service';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
+import { createHash, randomBytes } from 'crypto';
 
 @Injectable()
 export class AuthService {
@@ -39,6 +40,15 @@ export class AuthService {
 
     // 🔐 Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
+    const verificationToken = randomBytes(32).toString('hex');
+
+    const verificationTokenHash = createHash('sha256')
+      .update(verificationToken)
+      .digest('hex');
+
+    const verificationExpiresAt = new Date(
+      Date.now() + 24 * 60 * 60 * 1000,
+    );
 
     // 👤 Create user with tenant relation
     const user = await this.usersService.create({
@@ -46,6 +56,9 @@ export class AuthService {
       email,
       password: hashedPassword,
       tenant,
+      isEmailVerified: false,
+      emailVerificationToken: verificationTokenHash,
+      emailVerificationExpiresAt: verificationExpiresAt,
     });
 
     if (!user) {
@@ -63,6 +76,7 @@ export class AuthService {
     return {
       message: 'User created successfully',
       token,
+      verificationToken,
       user: {
         id: user.id,
         name: user.name,
@@ -70,6 +84,44 @@ export class AuthService {
       },
     };
   }
+
+  async verifyEmail(token: string) {
+  if (!token) {
+    throw new BadRequestException('Verification token is required');
+  }
+
+  const tokenHash = createHash('sha256')
+    .update(token)
+    .digest('hex');
+
+  const user =
+    await this.usersService.findByVerificationTokenHash(tokenHash);
+
+  if (!user) {
+    throw new BadRequestException(
+      'Invalid verification token',
+    );
+  }
+
+  if (
+    !user.emailVerificationExpiresAt ||
+    user.emailVerificationExpiresAt.getTime() < Date.now()
+  ) {
+    throw new BadRequestException(
+      'Verification token has expired',
+    );
+  }
+
+  user.isEmailVerified = true;
+  user.emailVerificationToken = null;
+  user.emailVerificationExpiresAt = null;
+
+  await this.usersService.save(user);
+
+  return {
+    message: 'Email verified successfully',
+  };
+}
 
   async login(data: LoginDto) {
   const { email, password } = data;

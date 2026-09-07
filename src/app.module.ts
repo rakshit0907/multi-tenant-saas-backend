@@ -62,6 +62,10 @@ export class AppModule implements NestModule {
           path: 'auth/signup',
           method: RequestMethod.POST,
         },
+        {
+          path: 'auth/verify-email',
+          method: RequestMethod.POST,
+        }
       )
       .forRoutes('*');
   }
