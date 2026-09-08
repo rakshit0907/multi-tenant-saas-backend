@@ -40,6 +40,17 @@ async findByVerificationTokenHash(tokenHash: string,
     .getOne();
 }
 
+async findByEmailWithVerificationFields(
+  email: string,
+): Promise<User | null> {
+  return this.userRepository
+    .createQueryBuilder('user')
+    .addSelect('user.emailVerificationToken')
+    .addSelect('user.emailVerificationExpiresAt')
+    .where('user.email = :email', { email })
+    .getOne();
+}
+
 async save(user: User): Promise<User> {
   return this.userRepository.save(user);
 }

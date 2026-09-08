@@ -6,6 +6,7 @@ import { TenantService } from '../tenant/tenant.service';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { createHash, randomBytes } from 'crypto';
+import { EmailService } from '../email/email.service';
 
 @Injectable()
 export class AuthService {
@@ -13,6 +14,7 @@ export class AuthService {
     private usersService: UsersService,
     private tenantService: TenantService,
     private jwtService: JwtService,
+    private emailService: EmailService,
   ) {}
 
   async signup(data: SignupDto) {
@@ -65,6 +67,16 @@ export class AuthService {
       throw new BadRequestException('User creation failed');
     }
 
+    try {
+      await this.emailService.sendVerificationEmail(
+        user.email,
+        user.name,
+        verificationToken,
+    );
+  } catch (error) {
+    console.error('Failed to send verification email:', error);
+ }
+
     // 🎟️ JWT payload
     const payload = {
       userId: user.id,
@@ -76,7 +88,6 @@ export class AuthService {
     return {
       message: 'User created successfully',
       token,
-      verificationToken,
       user: {
         id: user.id,
         name: user.name,
