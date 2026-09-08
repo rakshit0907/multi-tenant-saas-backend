@@ -12,8 +12,14 @@ import { ProtectedController } from './protected/protected.controller';
 import { TasksModule } from './tasks/tasks.module';
 import { ProjectInvitationsModule } from './project-invitations/project-invitations.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { ConfigModule } from '@nestjs/config';
+import { EmailModule } from './email/email.module';
+
 @Module({
   imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+    }),
     TypeOrmModule.forRoot({
       type: 'postgres',
       host: 'localhost',
@@ -42,6 +48,7 @@ import { NotificationsModule } from './notifications/notifications.module';
     ProjectMembersModule,
     ProjectInvitationsModule,
     NotificationsModule,
+    EmailModule,
   ],
 
   // ✅ CORRECT PLACE
