@@ -3,6 +3,7 @@ import { AuthService } from './auth.service';
 import { SignupDto } from './dto/signup.dto';
 import { LoginDto } from './dto/login.dto';
 import { VerifyEmailDto } from './dto/verify-email.dto';
+import { ResendVerificationDto } from './dto/resend-verification.dto';
 @Controller('auth')
 export class AuthController {
   constructor(private authService: AuthService) {}
@@ -21,4 +22,8 @@ verifyEmail(@Body() data: VerifyEmailDto) {
   return this.authService.verifyEmail(data.token);
 }
 
+@Post('resend-verification')
+resendVerification(@Body() data: ResendVerificationDto) {
+  return this.authService.resendVerification(data.email);
+}
 }

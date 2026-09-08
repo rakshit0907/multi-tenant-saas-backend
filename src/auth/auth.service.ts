@@ -186,4 +186,46 @@ export class AuthService {
     },
   };
 }
+
+async resendVerification(email: string) {
+  const user =
+    await this.usersService.findByEmailWithVerificationFields(email);
+
+  // Don't reveal whether an account exists
+  if (!user || user.isEmailVerified) {
+    return {
+      message:
+        'If an unverified account exists, a verification email has been sent',
+    };
+  }
+
+  const verificationToken = randomBytes(32).toString('hex');
+
+  const verificationTokenHash = createHash('sha256')
+    .update(verificationToken)
+    .digest('hex');
+
+  user.emailVerificationToken = verificationTokenHash;
+  user.emailVerificationExpiresAt = new Date(
+    Date.now() + 24 * 60 * 60 * 1000,
+  );
+
+  await this.usersService.save(user);
+
+  try {
+    await this.emailService.sendVerificationEmail(
+      user.email,
+      user.name,
+      verificationToken,
+    );
+  } catch (error) {
+    console.error('Failed to resend verification email:', error);
+  }
+
+  return {
+    message:
+      'If an unverified account exists, a verification email has been sent',
+  };
+}
+
 }
