@@ -30,7 +30,8 @@ export class EmailService {
         const frontendUrl =
           this.configService.get<string>('FRONTEND_URL') ?? 'http://localhost:3000';
 
-        const verificationUrl = `${frontendUrl}/verify-email?token=${encodeURIComponent(verificationToken)}`;  
+        const verificationUrl =
+          `http://localhost:3000/auth/verify-email-link?token=${encodeURIComponent(verificationToken)}`;  
 
         const { error } = await this.resend.emails.send({
             from,

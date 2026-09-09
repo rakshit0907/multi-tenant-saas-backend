@@ -77,6 +77,10 @@ export class AppModule implements NestModule {
           path: 'auth/resend-verification',
           method: RequestMethod.POST,
         },
+        {
+          path: 'auth/verify-email-link',
+          method: RequestMethod.GET,
+        },
       )
       .forRoutes('*');
   }
