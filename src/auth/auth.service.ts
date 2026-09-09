@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, } from '@nestjs/common';
+import { Injectable, BadRequestException, ForbiddenException, } from '@nestjs/common';
 import { SignupDto } from './dto/signup.dto';
 import { LoginDto } from './dto/login.dto';
 import { UsersService } from '../users/users.service';
@@ -18,84 +18,73 @@ export class AuthService {
   ) {}
 
   async signup(data: SignupDto) {
-    const { name, email, password, tenantName } = data;
+  const { name, email, password, tenantName } = data;
 
-    // 🔴 Hard validation (you didn’t have this)
-    if (!name || !email || !password || !tenantName) {
-      throw new BadRequestException('All fields are required');
-    }
+  if (!name || !email || !password || !tenantName) {
+    throw new BadRequestException('All fields are required');
+  }
 
-    // 🔍 Check existing user
-    const existingUser = await this.usersService.findByEmail(email);
-    if (existingUser) {
-      throw new BadRequestException('User already exists');
-    }
+  const existingUser = await this.usersService.findByEmail(email);
 
-    // ✅ FIX: ensure tenant gets proper data (NOT undefined)
-    const tenant = await this.tenantService.create({
-      name: tenantName,
-    });
+  if (existingUser) {
+    throw new BadRequestException('User already exists');
+  }
 
-    if (!tenant) {
-      throw new BadRequestException('Tenant creation failed');
-    }
+  const tenant = await this.tenantService.create({
+    name: tenantName,
+  });
 
-    // 🔐 Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const verificationToken = randomBytes(32).toString('hex');
+  if (!tenant) {
+    throw new BadRequestException('Tenant creation failed');
+  }
 
-    const verificationTokenHash = createHash('sha256')
-      .update(verificationToken)
-      .digest('hex');
+  const hashedPassword = await bcrypt.hash(password, 10);
 
-    const verificationExpiresAt = new Date(
-      Date.now() + 24 * 60 * 60 * 1000,
-    );
+  const verificationToken = randomBytes(32).toString('hex');
 
-    // 👤 Create user with tenant relation
-    const user = await this.usersService.create({
-      name,
-      email,
-      password: hashedPassword,
-      tenant,
-      isEmailVerified: false,
-      emailVerificationToken: verificationTokenHash,
-      emailVerificationExpiresAt: verificationExpiresAt,
-    });
+  const verificationTokenHash = createHash('sha256')
+    .update(verificationToken)
+    .digest('hex');
 
-    if (!user) {
-      throw new BadRequestException('User creation failed');
-    }
+  const verificationExpiresAt = new Date(
+    Date.now() + 24 * 60 * 60 * 1000,
+  );
 
-    try {
-      await this.emailService.sendVerificationEmail(
-        user.email,
-        user.name,
-        verificationToken,
+  const user = await this.usersService.create({
+    name,
+    email,
+    password: hashedPassword,
+    tenant,
+    isEmailVerified: false,
+    emailVerificationToken: verificationTokenHash,
+    emailVerificationExpiresAt: verificationExpiresAt,
+  });
+
+  if (!user) {
+    throw new BadRequestException('User creation failed');
+  }
+
+  try {
+    await this.emailService.sendVerificationEmail(
+      user.email,
+      user.name,
+      verificationToken,
     );
   } catch (error) {
     console.error('Failed to send verification email:', error);
- }
-
-    // 🎟️ JWT payload
-    const payload = {
-      userId: user.id,
-      tenantId: tenant.id,
-    };
-
-    const token = this.jwtService.sign(payload);
-
-    return {
-      message: 'User created successfully',
-      token,
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-      },
-    };
   }
 
+  return {
+    message:
+      'User created successfully. Please verify your email before logging in.',
+    user: {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+    },
+  };
+}
+ 
   async verifyEmail(token: string) {
   if (!token) {
     throw new BadRequestException('Verification token is required');
@@ -137,29 +126,32 @@ export class AuthService {
   async login(data: LoginDto) {
   const { email, password } = data;
 
-  console.log('================ LOGIN START ================');
-  console.log('EMAIL RECEIVED:', email);
-
   if (!email || !password) {
-    console.log('❌ Missing email or password');
-    throw new BadRequestException('Email and password are required');
+    throw new BadRequestException(
+      'Email and password are required',
+    );
   }
 
-  const user = await this.usersService.findByEmailWithPassword(email);
-
+  const user =
+    await this.usersService.findByEmailWithPassword(email);
 
   if (!user) {
-    console.log('❌ USER NOT FOUND');
     throw new BadRequestException('Invalid credentials');
   }
 
-  const isMatch = await bcrypt.compare(password, user.password);
-
-  console.log('PASSWORD MATCH:', isMatch);
+  const isMatch = await bcrypt.compare(
+    password,
+    user.password,
+  );
 
   if (!isMatch) {
-    console.log('❌ PASSWORD INCORRECT');
     throw new BadRequestException('Invalid credentials');
+  }
+
+  if (!user.isEmailVerified) {
+    throw new ForbiddenException(
+      'Please verify your email before logging in',
+    );
   }
 
   const payload = {
@@ -168,11 +160,7 @@ export class AuthService {
     role: user.role,
   };
 
-
   const token = this.jwtService.sign(payload);
-
-  console.log('✅ LOGIN SUCCESS');
-  console.log('================ LOGIN END =================');
 
   return {
     message: 'Login successful',
