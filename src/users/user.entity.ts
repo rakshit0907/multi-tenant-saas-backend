@@ -40,6 +40,20 @@ export class User {
   })
   role!: Role;
 
+  @Column({
+    type: 'varchar',
+    nullable: true,
+    select: false,
+  })
+  passwordResetToken!: string | null;
+
+  @Column({
+    type: 'timestamp',
+    nullable: true,
+    select: false,
+  })
+  passwordResetExpiresAt!: Date | null;
+
   @OneToMany(
     () => ProjectMember,
     (member) => member.user,
