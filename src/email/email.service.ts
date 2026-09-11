@@ -53,4 +53,35 @@ export class EmailService {
             );
         }
     }
+
+    async sendPasswordResetEmail(
+      email: string,
+      name: string,
+      resetToken: string,
+    ): Promise<void> {
+     const resetUrl =
+      `http://localhost:3000/auth/reset-password-link?token=${encodeURIComponent(resetToken)}`;
+
+     const { error } = await this.resend.emails.send({
+       from: process.env.EMAIL_FROM ?? 'onboarding@resend.dev',
+       to: email,
+       subject: 'Reset your password',
+       html: `
+         <h2>Password Reset Request</h2>
+         <p>Hi ${name},</p>
+         <p>You requested to reset your password.</p>
+         <p>This link will expire in 15 minutes.</p>
+         <a href="${resetUrl}">
+           Reset Password
+         </a>
+         <p>If you did not request this, you can ignore this email.</p>
+       `,
+     });
+
+     if (error) {
+      throw new Error(
+        `Failed to send password reset email: ${error.message}`,
+      );
+    }
+  }
 }

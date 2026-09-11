@@ -55,6 +55,16 @@ async save(user: User): Promise<User> {
   return this.userRepository.save(user);
 }
 
+async findByEmailWithPasswordResetFields(
+  email: string,
+): Promise<User | null> {
+  return this.userRepository
+    .createQueryBuilder('user')
+    .addSelect('user.passwordResetToken')
+    .addSelect('user.passwordResetExpiresAt')
+    .where('user.email = :email', { email })
+    .getOne();
+}
 
 findAll() {
   const tenantId = this.cls.get('tenantId');

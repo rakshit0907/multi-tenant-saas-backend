@@ -216,4 +216,43 @@ async resendVerification(email: string) {
   };
 }
 
+async forgotPassword(email: string) {
+  const user =
+    await this.usersService.findByEmailWithPasswordResetFields(
+      email.trim().toLowerCase(),
+    );
+
+  // Always return same response to prevent email enumeration
+  if (!user) {
+    return {
+      message:
+        'If an account exists with that email, a password reset link has been sent.',
+    };
+  }
+
+  const resetToken = randomBytes(32).toString('hex');
+
+  const resetTokenHash = createHash('sha256')
+    .update(resetToken)
+    .digest('hex');
+
+  user.passwordResetToken = resetTokenHash;
+  user.passwordResetExpiresAt = new Date(
+    Date.now() + 15 * 60 * 1000,
+  );
+
+  await this.usersService.save(user);
+
+  await this.emailService.sendPasswordResetEmail(
+    user.email,
+    user.name,
+    resetToken,
+  );
+
+  return {
+    message:
+      'If an account exists with that email, a password reset link has been sent.',
+  };
+}
+
 }
