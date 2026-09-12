@@ -255,4 +255,44 @@ async forgotPassword(email: string) {
   };
 }
 
+async resetPassword(
+  token: string,
+  newPassword: string,
+) {
+  const tokenHash = createHash('sha256')
+    .update(token)
+    .digest('hex');
+
+  const user =
+    await this.usersService.findByPasswordResetTokenHash(
+      tokenHash,
+    );
+
+  if (
+    !user ||
+    !user.passwordResetExpiresAt ||
+    user.passwordResetExpiresAt < new Date()
+  ) {
+    throw new BadRequestException(
+      'Invalid or expired password reset token',
+    );
+  }
+
+  const hashedPassword = await bcrypt.hash(
+    newPassword,
+    10,
+  );
+
+  user.password = hashedPassword;
+  user.passwordResetToken = null;
+  user.passwordResetExpiresAt = null;
+
+  await this.usersService.save(user);
+
+  return {
+    message: 'Password reset successfully',
+  };
+}
+
+
 }

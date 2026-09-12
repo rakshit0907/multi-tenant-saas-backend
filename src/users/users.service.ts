@@ -66,6 +66,19 @@ async findByEmailWithPasswordResetFields(
     .getOne();
 }
 
+async findByPasswordResetTokenHash(
+  tokenHash: string,
+): Promise<User | null> {
+  return this.userRepository
+    .createQueryBuilder('user')
+    .addSelect('user.passwordResetToken')
+    .addSelect('user.passwordResetExpiresAt')
+    .where('user.passwordResetToken = :tokenHash', {
+      tokenHash,
+    })
+    .getOne();
+}
+
 findAll() {
   const tenantId = this.cls.get('tenantId');
   
