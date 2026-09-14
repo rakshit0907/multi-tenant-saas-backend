@@ -59,8 +59,8 @@ export class EmailService {
       name: string,
       resetToken: string,
     ): Promise<void> {
-     const resetUrl =
-      `http://localhost:3000/auth/reset-password-link?token=${encodeURIComponent(resetToken)}`;
+    const resetUrl =
+  `http://10.0.2.2:3000/auth/reset-password-link?token=${encodeURIComponent(resetToken)}`;
 
      const { error } = await this.resend.emails.send({
        from: process.env.EMAIL_FROM ?? 'onboarding@resend.dev',

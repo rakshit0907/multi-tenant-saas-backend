@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, Query } from '@nestjs/common';
+import { Controller, Post, Body, Get, Query, Res, } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { SignupDto } from './dto/signup.dto';
 import { LoginDto } from './dto/login.dto';
@@ -6,7 +6,7 @@ import { VerifyEmailDto } from './dto/verify-email.dto';
 import { ResendVerificationDto } from './dto/resend-verification.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
-
+import type { Response } from 'express';
 @Controller('auth')
 export class AuthController {
   constructor(private authService: AuthService) {}
@@ -47,6 +47,17 @@ resetPassword(
     dto.token,
     dto.newPassword,
   );
+}
+
+@Get('reset-password-link')
+resetPasswordLink(
+  @Query('token') token: string,
+  @Res() res: Response,
+) {
+  const appUrl =
+    `multisaas://reset-password?token=${encodeURIComponent(token)}`;
+
+  return res.redirect(appUrl);
 }
 
 @Get('verify-email-link')
