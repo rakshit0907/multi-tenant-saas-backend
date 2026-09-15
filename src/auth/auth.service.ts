@@ -19,12 +19,13 @@ export class AuthService {
 
   async signup(data: SignupDto) {
   const { name, email, password, tenantName } = data;
-
+  const normalizedEmail = email.trim().toLowerCase();
+  
   if (!name || !email || !password || !tenantName) {
     throw new BadRequestException('All fields are required');
   }
 
-  const existingUser = await this.usersService.findByEmail(email);
+  const existingUser = await this.usersService.findByEmail(normalizedEmail);
 
   if (existingUser) {
     throw new BadRequestException('User already exists');
@@ -52,7 +53,7 @@ export class AuthService {
 
   const user = await this.usersService.create({
     name,
-    email,
+    email: normalizedEmail,
     password: hashedPassword,
     tenant,
     isEmailVerified: false,
@@ -132,8 +133,12 @@ export class AuthService {
     );
   }
 
+
+  const normalizedEmail = email.trim().toLowerCase();
   const user =
-    await this.usersService.findByEmailWithPassword(email);
+    await this.usersService.findByEmailWithPassword(
+      normalizedEmail,
+    );
 
   if (!user) {
     throw new BadRequestException('Invalid credentials');
@@ -176,8 +181,9 @@ export class AuthService {
 }
 
 async resendVerification(email: string) {
+  const normalizedEmail = email.trim().toLowerCase();
   const user =
-    await this.usersService.findByEmailWithVerificationFields(email);
+    await this.usersService.findByEmailWithVerificationFields(normalizedEmail);
 
   // Don't reveal whether an account exists
   if (!user || user.isEmailVerified) {
