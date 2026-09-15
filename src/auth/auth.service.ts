@@ -1,4 +1,9 @@
-import { Injectable, BadRequestException, ForbiddenException, } from '@nestjs/common';
+import { 
+  Injectable, 
+  BadRequestException,
+  ForbiddenException, 
+  UnauthorizedException, 
+} from '@nestjs/common';
 import { SignupDto } from './dto/signup.dto';
 import { LoginDto } from './dto/login.dto';
 import { UsersService } from '../users/users.service';
@@ -141,7 +146,7 @@ export class AuthService {
     );
 
   if (!user) {
-    throw new BadRequestException('Invalid credentials');
+    throw new UnauthorizedException('Invalid credentials');
   }
 
   const isMatch = await bcrypt.compare(
@@ -150,7 +155,7 @@ export class AuthService {
   );
 
   if (!isMatch) {
-    throw new BadRequestException('Invalid credentials');
+    throw new UnauthorizedException('Invalid credentials');
   }
 
   if (!user.isEmailVerified) {
