@@ -72,9 +72,6 @@ export class ProjectService {
 }
   async findAll(tenantId: string, userId: string,) {
 
-    console.log("USER ID:", userId);
-    console.log("TENANT ID:", tenantId);
-
     const memberships = await this.memberRepo.find({
       where: {
         user: { id: userId },
@@ -85,7 +82,6 @@ export class ProjectService {
        relations: ["project"],
     });
 
-    console.log("MEMBERSHIPS:", memberships);
     return memberships
         .map((m) => m.project);
   }

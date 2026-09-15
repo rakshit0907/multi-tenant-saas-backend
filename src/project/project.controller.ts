@@ -9,9 +9,6 @@ export class ProjectController {
   @UseGuards(AuthGuard('jwt'))
   @Post()
   create(@Req() req, @Body() body) {
-    console.log("BODY:", body);
-    console.log("USER:", req.user);
-    console.log("REQ TENANT:", req['tenantId']);
     return this.projectService.create(
       body.name,
       req.user.tenantId,

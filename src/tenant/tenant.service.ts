@@ -74,7 +74,6 @@ export class TenantService {
       },
       relations: ["tenant"],
     });
-     console.log("INVITE:", invite);
     if (!invite) {
       throw new BadRequestException("Invalid invite");
    }
