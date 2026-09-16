@@ -204,6 +204,10 @@ async resendVerification(email: string) {
     .update(verificationToken)
     .digest('hex');
 
+  const previousToken = user.emailVerificationToken;
+  const previousExpiresAt =
+  user.emailVerificationExpiresAt;  
+
   user.emailVerificationToken = verificationTokenHash;
   user.emailVerificationExpiresAt = new Date(
     Date.now() + 24 * 60 * 60 * 1000,
@@ -218,7 +222,16 @@ async resendVerification(email: string) {
       verificationToken,
     );
   } catch (error) {
-    console.error('Failed to resend verification email:', error);
+    user.emailVerificationToken = previousToken;
+    user.emailVerificationExpiresAt =
+      previousExpiresAt;
+
+    await this.usersService.save(user);
+
+    console.error(
+      'Failed to resend verification email:',
+       error,
+    );
   }
 
   return {
@@ -247,6 +260,10 @@ async forgotPassword(email: string) {
     .update(resetToken)
     .digest('hex');
 
+  const previousToken = user.passwordResetToken;
+  const previousExpiresAt =
+  user.passwordResetExpiresAt;  
+
   user.passwordResetToken = resetTokenHash;
   user.passwordResetExpiresAt = new Date(
     Date.now() + 15 * 60 * 1000,
@@ -254,11 +271,24 @@ async forgotPassword(email: string) {
 
   await this.usersService.save(user);
 
-  await this.emailService.sendPasswordResetEmail(
-    user.email,
-    user.name,
-    resetToken,
-  );
+  try {
+    await this.emailService.sendPasswordResetEmail(
+      user.email,
+      user.name,
+      resetToken,
+    );
+  } catch (error) {
+    user.passwordResetToken = previousToken;
+    user.passwordResetExpiresAt =
+      previousExpiresAt;
+
+    await this.usersService.save(user);
+
+    console.error(
+      'Failed to send password reset email:',
+     error,
+   );
+ }
 
   return {
     message:
