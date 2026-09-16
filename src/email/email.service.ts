@@ -27,11 +27,14 @@ export class EmailService {
             throw new Error('EMAIL_FROM is not configured');
         }
 
-        const frontendUrl =
-          this.configService.get<string>('FRONTEND_URL') ?? 'http://localhost:3000';
+        const backendUrl =
+          this.configService.get<string>('BACKEND_PUBLIC_URL') ??
+          'http://localhost:3000';
 
         const verificationUrl =
-          `http://localhost:3000/auth/verify-email-link?token=${encodeURIComponent(verificationToken)}`;  
+          `${backendUrl}/auth/verify-email-link?token=${encodeURIComponent(
+           verificationToken,
+       )}`;
 
         const { error } = await this.resend.emails.send({
             from,
@@ -59,8 +62,15 @@ export class EmailService {
       name: string,
       resetToken: string,
     ): Promise<void> {
+
+    const backendUrl =
+      this.configService.get<string>('BACKEND_PUBLIC_URL') ??
+      'http://localhost:3000';
+
     const resetUrl =
-  `http://10.0.2.2:3000/auth/reset-password-link?token=${encodeURIComponent(resetToken)}`;
+      `${backendUrl}/auth/reset-password-link?token=${encodeURIComponent(
+        resetToken,
+    )}`;  
 
      const { error } = await this.resend.emails.send({
        from: process.env.EMAIL_FROM ?? 'onboarding@resend.dev',
