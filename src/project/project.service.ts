@@ -128,6 +128,7 @@ export class ProjectService {
           id: projectId,
         },
       },
+      relations: ['assignee'],
     });
 
     const total = tasks.length;
@@ -177,6 +178,33 @@ export class ProjectService {
       );
     }).length;
 
+    const upcomingDeadlines = tasks
+      .filter(
+        (task) =>
+          task.dueDate &&
+          new Date(task.dueDate) >= today &&
+          task.status !== TaskStatus.COMPLETED,
+    )
+    .sort(
+      (a, b) =>
+        new Date(a.dueDate).getTime() -
+        new Date(b.dueDate).getTime(),
+    )
+    .slice(0, 5)
+    .map((task) => ({
+      id: task.id,
+      title: task.title,
+      dueDate: task.dueDate,
+      priority: task.priority,
+      status: task.status,
+      assignee: task.assignee
+        ? {
+           id: task.assignee.id,
+           name: task.assignee.name,
+        }
+        : null,
+   }));
+
     const completionPercentage =
       total === 0
         ? 0
@@ -189,6 +217,41 @@ export class ProjectService {
         },
       },
     });
+
+    const projectMembers = await this.memberRepo.find({
+     where: {
+       project: {
+        id: projectId,
+      },
+    },
+    relations: ['user'],
+  });
+
+   const workload = projectMembers.map((member) => {
+     const assignedTasks = tasks.filter(
+      (task) => task.assignee?.id === member.user.id,
+    );
+
+   return {
+     userId: member.user.id,
+     name: member.user.name,
+     total: assignedTasks.length,
+
+     completed: assignedTasks.filter(
+       (task) => task.status === TaskStatus.COMPLETED,
+     ).length,
+
+    inProgress: assignedTasks.filter(
+      (task) => task.status === TaskStatus.IN_PROGRESS,
+    ).length,
+
+    pending: assignedTasks.filter(
+      (task) => task.status === TaskStatus.PENDING,
+    ).length,
+  };
+});
+
+   
 
     const recentActivity = (
       await this.activityService.getProjectActivity(
@@ -224,6 +287,8 @@ export class ProjectService {
       members: {
         total: members,
       },
+      workload,
+      upcomingDeadlines,
       recentActivity,
     };
   }
