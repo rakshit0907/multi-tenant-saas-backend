@@ -6,9 +6,13 @@ import { ProjectController } from './project.controller';
 import { ProjectMember } from '../project-members/project-member.entity';
 import { Task } from '../tasks/task.entity';
 import { ActivityModule } from '../activity/activity.module';
+import { Milestone } from './milestone.entity';
 @Module({
-    imports: [TypeOrmModule.forFeature([Project, ProjectMember, Task,]), ActivityModule,],
-    providers: [ProjectService],
-    controllers: [ProjectController],
+  imports: [
+    TypeOrmModule.forFeature([Project, ProjectMember, Task, Milestone]),
+    ActivityModule,
+  ],
+  providers: [ProjectService],
+  controllers: [ProjectController],
 })
 export class ProjectModule {}

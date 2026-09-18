@@ -3,12 +3,14 @@ import {
   PrimaryGeneratedColumn,
   Column,
   ManyToOne,
-  ManyToMany, 
+  ManyToMany,
   JoinTable,
 } from 'typeorm';
 import { Label } from './label.entity';
 import { Project } from '../project/project.entity';
 import { User } from '../users/user.entity';
+import { Milestone } from '../project/milestone.entity';
+
 export enum TaskPriority {
   LOW = 'LOW',
   MEDIUM = 'MEDIUM',
@@ -19,7 +21,6 @@ export enum TaskStatus {
   IN_PROGRESS = 'IN_PROGRESS',
   COMPLETED = 'COMPLETED',
 }
-
 
 @Entity()
 export class Task {
@@ -42,11 +43,11 @@ export class Task {
   priority!: TaskPriority;
 
   @Column({
-  type: 'enum',
-  enum: TaskStatus,
-  default: TaskStatus.PENDING,
-})
-status!: TaskStatus;
+    type: 'enum',
+    enum: TaskStatus,
+    default: TaskStatus.PENDING,
+  })
+  status!: TaskStatus;
 
   @Column({
     type: 'timestamp',
@@ -60,28 +61,25 @@ status!: TaskStatus;
   })
   description!: string;
 
-  @ManyToOne(
-    () => Project,
-    (project) => project.tasks,
-  )
+  @ManyToOne(() => Project, (project) => project.tasks)
   project!: Project;
 
-  @ManyToOne(
-    () => User,
-    {
-      nullable: true },
-  )
+  @ManyToOne(() => User, {
+    nullable: true,
+  })
   assignee?: User;
 
-  @ManyToMany(
-  () => Label,
-  (label) => label.tasks,
-  {
+  @ManyToMany(() => Label, (label) => label.tasks, {
     cascade: false,
-  },
-)
-@JoinTable({
-  name: 'task_labels',
-})
-labels!: Label[];
+  })
+  @JoinTable({
+    name: 'task_labels',
+  })
+  labels!: Label[];
+
+  @ManyToOne(() => Milestone, (milestone) => milestone.tasks, {
+    nullable: true,
+    onDelete: 'SET NULL',
+  })
+  milestone!: Milestone | null;
 }

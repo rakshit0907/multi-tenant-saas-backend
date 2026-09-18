@@ -10,6 +10,7 @@ import { ProjectMember } from '../project-members/project-member.entity';
 import { Tenant } from '../tenant/tenant.entity';
 import { Task } from '../tasks/task.entity';
 import { Label } from '../tasks/label.entity';
+import { Milestone } from './milestone.entity';
 
 @Entity()
 export class Project {
@@ -27,15 +28,12 @@ export class Project {
 
   @OneToMany(() => Task, (task) => task.project)
   tasks!: Task[];
-  @OneToMany(
-    () => ProjectMember,
-    (member) => member.project,
-  )
+  @OneToMany(() => ProjectMember, (member) => member.project)
   members!: ProjectMember[];
 
-  @OneToMany(
-  () => Label,
-  (label) => label.project,
-)
-labels!: Label[];
+  @OneToMany(() => Label, (label) => label.project)
+  labels!: Label[];
+
+  @OneToMany(() => Milestone, (milestone) => milestone.project)
+  milestones!: Milestone[];
 }
