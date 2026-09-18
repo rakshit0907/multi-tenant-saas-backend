@@ -7,12 +7,14 @@ import { ProjectMember } from '../project-members/project-member.entity';
 import { Task } from '../tasks/task.entity';
 import { ActivityModule } from '../activity/activity.module';
 import { Milestone } from './milestone.entity';
+import { MilestoneService } from './milestone.service';
+import { MilestoneController } from './milestone.controller';
 @Module({
   imports: [
     TypeOrmModule.forFeature([Project, ProjectMember, Task, Milestone]),
     ActivityModule,
   ],
-  providers: [ProjectService],
-  controllers: [ProjectController],
+  providers: [ProjectService, MilestoneService],
+  controllers: [ProjectController, MilestoneController],
 })
 export class ProjectModule {}
