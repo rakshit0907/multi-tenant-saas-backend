@@ -43,4 +43,8 @@ export class CreateTaskDto {
   @IsArray()
   @IsUUID('4', { each: true })
   labelIds?: string[];
+
+  @IsOptional()
+  @IsUUID()
+  milestoneId?: string;
 }

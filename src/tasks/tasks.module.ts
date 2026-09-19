@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { Milestone } from '../project/milestone.entity';
 import { Task } from './task.entity';
 import { TasksController } from './tasks.controller';
 import { TasksService } from './tasks.service';
@@ -15,7 +16,7 @@ import { TaskAttachmentsService } from './task-attachments.service';
 import { Label } from './label.entity';
 import { LabelsService } from './labels.service';
 @Module({
-  imports: [TypeOrmModule.forFeature([Task, Label, Project, User, ProjectMember, TaskComment, TaskAttachment,]), ActivityModule, NotificationsModule, ],
+  imports: [TypeOrmModule.forFeature([Task, Label, Project, User, ProjectMember, TaskComment, TaskAttachment, Milestone,]), ActivityModule, NotificationsModule, ],
   controllers: [TasksController],
   providers: [TasksService, TaskCommentsService, TaskAttachmentsService, LabelsService,]
 })

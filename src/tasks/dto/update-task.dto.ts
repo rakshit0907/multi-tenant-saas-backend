@@ -41,4 +41,8 @@ export class UpdateTaskDto {
   @IsArray()
   @IsUUID('4', { each: true })
   labelIds?: string[];
+
+  @IsOptional()
+  @IsUUID()
+  milestoneId?: string | null;
 }

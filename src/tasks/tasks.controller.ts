@@ -79,6 +79,7 @@ export class TasksController {
       body.assigneeId,
       req.user.userId,
       body.labelIds,
+      body.milestoneId,
     );
   }
 
@@ -209,10 +210,10 @@ export class TasksController {
   @Patch(':id')
   updateTask(
     @Param('id') id: string,
-    @Body() body,
+    @Body() body: UpdateTaskDto,
     @Req() req: any,
   ) {
-    return this.tasksService.updateTask(id, body.title!, body.description ?? '', body.priority ?? TaskPriority.MEDIUM, req.user.tenantId, body.status, body.dueDate ? new Date(body.dueDate) : undefined, body.assigneeId, req.user.userId, body.labelIds,
+    return this.tasksService.updateTask(id, body.title!, body.description ?? '', body.priority ?? TaskPriority.MEDIUM, req.user.tenantId, body.status, body.dueDate ? new Date(body.dueDate) : undefined, body.assigneeId, req.user.userId, body.labelIds, body.milestoneId,
 );
 
   }

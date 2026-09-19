@@ -16,6 +16,8 @@ import { NotificationService } from '../notifications/notification.service';
 import { NotificationType } from '../notifications/notification.entity';
 import { ProjectRole } from '../common/enums/project-role.enum';
 import { Label } from './label.entity';
+import { Milestone } from '../project/milestone.entity';
+
 @Injectable()
 export class TasksService {
   constructor(
@@ -30,6 +32,9 @@ export class TasksService {
 
     @InjectRepository(Label)
     private labelRepo: Repository<Label>,
+
+    @InjectRepository(Milestone)
+    private milestoneRepo: Repository<Milestone>,
 
     @InjectRepository(ProjectMember)
     private memberRepo: Repository<ProjectMember>,
@@ -220,6 +225,7 @@ export class TasksService {
     assigneeId?: string,
     createdById?: string,
     labelIds?: string[],
+    milestoneId?: string,
    )
   {
     const project = await this.projectRepo.findOne({
@@ -308,6 +314,25 @@ export class TasksService {
   }
 }
 
+ let milestone: Milestone | null = null;
+
+ if (milestoneId) {
+   milestone = await this.milestoneRepo.findOne({
+     where: {
+       id: milestoneId,
+       project: {
+         id: projectId,
+       },
+     },
+   });
+
+   if (!milestone) {
+     throw new BadRequestException(
+       'Milestone is invalid for this project',
+     );
+   }
+ }
+
    const task = this.repo.create({
     title,
     dueDate,
@@ -317,6 +342,7 @@ export class TasksService {
     project,
     assignee: assignee ?? undefined,
     labels,
+    milestone: milestone ?? undefined,
    });
 
    const savedTask = await this.repo.save(task);
@@ -395,11 +421,12 @@ export class TasksService {
   await this.getMembership(projectId, userId);
 
   const query = this.repo
-  .createQueryBuilder('task')
-  .leftJoinAndSelect('task.project', 'project')
-  .leftJoinAndSelect('task.assignee', 'assignee')
-  .leftJoinAndSelect('task.labels', 'labels')
-  .leftJoin('project.tenant', 'tenant')
+    .createQueryBuilder('task')
+    .leftJoinAndSelect('task.project', 'project')
+    .leftJoinAndSelect('task.assignee', 'assignee')
+    .leftJoinAndSelect('task.labels', 'labels')
+    .leftJoinAndSelect('task.milestone', 'milestone')
+    .leftJoin('project.tenant', 'tenant')
     .where('project.id = :projectId', {
       projectId,
     })
@@ -494,6 +521,7 @@ export class TasksService {
     assigneeId?: string,
     userId?: string,
     labelIds?: string[],
+    milestoneId?: string | null,
   ) {
 
     const task = await this.repo.findOne({
@@ -504,7 +532,7 @@ export class TasksService {
           },
         },
        },
-      relations: ['project', 'assignee', 'labels',],
+      relations: ['project', 'assignee', 'labels','milestone',],
     });
 
     if (!task) {
@@ -568,6 +596,29 @@ export class TasksService {
         task.assignee = assignee;
       }
     }
+
+    if (milestoneId !== undefined) {
+  if (milestoneId === null) {
+    task.milestone = null;
+  } else {
+    const milestone = await this.milestoneRepo.findOne({
+      where: {
+        id: milestoneId,
+        project: {
+          id: task.project.id,
+        },
+      },
+    });
+
+    if (!milestone) {
+      throw new BadRequestException(
+        'Milestone is invalid for this project',
+      );
+    }
+
+    task.milestone = milestone;
+  }
+}
     const savedTask = await this.repo.save(task);
 
     const user = await this.userRepo.findOne({
