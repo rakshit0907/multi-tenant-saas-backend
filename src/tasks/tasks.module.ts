@@ -16,8 +16,26 @@ import { TaskAttachmentsService } from './task-attachments.service';
 import { Label } from './label.entity';
 import { LabelsService } from './labels.service';
 @Module({
-  imports: [TypeOrmModule.forFeature([Task, Label, Project, User, ProjectMember, TaskComment, TaskAttachment, Milestone,]), ActivityModule, NotificationsModule, ],
+  imports: [
+    TypeOrmModule.forFeature([
+      Task,
+      Label,
+      Project,
+      User,
+      ProjectMember,
+      TaskComment,
+      TaskAttachment,
+      Milestone,
+    ]),
+    ActivityModule,
+    NotificationsModule,
+  ],
   controllers: [TasksController],
-  providers: [TasksService, TaskCommentsService, TaskAttachmentsService, LabelsService,]
+  providers: [
+    TasksService,
+    TaskCommentsService,
+    TaskAttachmentsService,
+    LabelsService,
+  ],
 })
 export class TasksModule {}

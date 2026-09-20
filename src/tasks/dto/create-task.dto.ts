@@ -8,10 +8,7 @@ import {
   MaxLength,
 } from 'class-validator';
 
-import {
-  TaskPriority,
-  TaskStatus,
-} from '../task.entity';
+import { TaskPriority, TaskStatus } from '../task.entity';
 
 export class CreateTaskDto {
   @IsString()
