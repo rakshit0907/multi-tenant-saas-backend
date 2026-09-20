@@ -12,6 +12,7 @@ import { ProjectMember } from '../project-members/project-member.entity';
 import { ProjectRole } from '../common/enums/project-role.enum';
 import { CreateMilestoneDto } from './dto/create-milestone.dto';
 import { UpdateMilestoneDto } from './dto/update-milestone.dto';
+import { TaskStatus } from '../tasks/task.entity';
 
 @Injectable()
 export class MilestoneService {
@@ -104,16 +105,41 @@ export class MilestoneService {
     await this.getProject(projectId, tenantId);
     await this.getMembership(projectId, userId);
 
-    return this.milestoneRepo.find({
+    const milestones = await this.milestoneRepo.find({
       where: {
         project: {
           id: projectId,
         },
       },
+      relations: {
+        tasks: true,
+      },
       order: {
         targetDate: 'ASC',
         createdAt: 'ASC',
       },
+    });
+
+    return milestones.map((milestone) => {
+      const taskCount = milestone.tasks.length;
+
+      const completedTaskCount = milestone.tasks.filter(
+        (task) => task.status === TaskStatus.COMPLETED,
+      ).length;
+
+      const progress =
+        taskCount === 0
+          ? 0
+          : Math.round((completedTaskCount / taskCount) * 100);
+
+      const { tasks, ...milestoneData } = milestone;
+
+      return {
+        ...milestoneData,
+        taskCount,
+        completedTaskCount,
+        progress,
+      };
     });
   }
 
