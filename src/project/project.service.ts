@@ -1,14 +1,20 @@
-import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Project } from './project.entity';
+import { Project, ProjectStatus } from './project.entity';
+import { CreateProjectDto } from './dto/create-project.dto';
+import { UpdateProjectDto } from './dto/update-project.dto';
 import { ProjectMember } from '../project-members/project-member.entity';
 import { ProjectRole } from '../common/enums/project-role.enum';
-import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { TaskPriority, TaskStatus } from '../tasks/task.entity';
 import { Task } from '../tasks/task.entity';
 import { ActivityService } from '../activity/activity.service';
 import { Milestone } from './milestone.entity';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 @Injectable()
 export class ProjectService {
   constructor(
@@ -27,18 +33,111 @@ export class ProjectService {
     private activityService: ActivityService,
   ) {}
 
-  async create(name: string, tenantId: string, userId: string) {
-    const project = await this.repo.save({
+  async create(dto: CreateProjectDto, tenantId: string, userId: string) {
+    const name = dto.name.trim();
+
+    if (!name) {
+      throw new BadRequestException('Project name is required');
+    }
+
+    const startDate = dto.startDate ? new Date(dto.startDate) : null;
+    const dueDate = dto.dueDate ? new Date(dto.dueDate) : null;
+
+    if (startDate && dueDate && startDate > dueDate) {
+      throw new BadRequestException(
+        'Project start date cannot be after due date',
+      );
+    }
+
+    const project = this.repo.create({
       name,
+      description: dto.description?.trim() || null,
+      status: dto.status ?? ProjectStatus.PLANNING,
+      startDate,
+      dueDate,
       tenant: { id: tenantId },
     });
 
+    const savedProject = await this.repo.save(project);
+
     await this.memberRepo.save({
-      project,
+      project: savedProject,
       user: { id: userId },
       role: ProjectRole.OWNER,
     });
-    return project;
+
+    return savedProject;
+  }
+
+  async updateProject(
+    id: string,
+    dto: UpdateProjectDto,
+    tenantId: string,
+    userId: string,
+  ) {
+    const project = await this.repo.findOne({
+      where: {
+        id,
+        tenant: { id: tenantId },
+      },
+    });
+
+    if (!project) {
+      throw new NotFoundException('Project not found');
+    }
+
+    const membership = await this.memberRepo.findOne({
+      where: {
+        project: { id },
+        user: { id: userId },
+      },
+    });
+
+    if (!membership || membership.role !== ProjectRole.OWNER) {
+      throw new ForbiddenException(
+        'Only the project owner can update this project',
+      );
+    }
+
+    if (dto.name !== undefined) {
+      const name = dto.name.trim();
+
+      if (!name) {
+        throw new BadRequestException('Project name is required');
+      }
+
+      project.name = name;
+    }
+
+    if (dto.description !== undefined) {
+      project.description =
+        dto.description === null ? null : dto.description.trim() || null;
+    }
+
+    if (dto.status !== undefined) {
+      project.status = dto.status;
+    }
+
+    if (dto.startDate !== undefined) {
+      project.startDate =
+        dto.startDate === null ? null : new Date(dto.startDate);
+    }
+
+    if (dto.dueDate !== undefined) {
+      project.dueDate = dto.dueDate === null ? null : new Date(dto.dueDate);
+    }
+
+    if (
+      project.startDate &&
+      project.dueDate &&
+      project.startDate > project.dueDate
+    ) {
+      throw new BadRequestException(
+        'Project start date cannot be after due date',
+      );
+    }
+
+    return this.repo.save(project);
   }
   async deleteProject(id: string, tenantId: string, userId: string) {
     const project = await this.repo.findOne({
