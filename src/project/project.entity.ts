@@ -12,6 +12,14 @@ import { Task } from '../tasks/task.entity';
 import { Label } from '../tasks/label.entity';
 import { Milestone } from './milestone.entity';
 
+export enum ProjectStatus {
+  PLANNING = 'PLANNING',
+  ACTIVE = 'ACTIVE',
+  ON_HOLD = 'ON_HOLD',
+  COMPLETED = 'COMPLETED',
+  ARCHIVED = 'ARCHIVED',
+}
+
 @Entity()
 export class Project {
   @PrimaryGeneratedColumn('uuid')
@@ -19,6 +27,22 @@ export class Project {
 
   @Column()
   name!: string;
+
+  @Column({ type: 'text', nullable: true })
+  description!: string | null;
+
+  @Column({
+    type: 'enum',
+    enum: ProjectStatus,
+    default: ProjectStatus.PLANNING,
+  })
+  status!: ProjectStatus;
+
+  @Column({ type: 'timestamp', nullable: true })
+  startDate!: Date | null;
+
+  @Column({ type: 'timestamp', nullable: true })
+  dueDate!: Date | null;
 
   @ManyToOne(() => Tenant, (tenant) => tenant.projects)
   tenant!: Tenant;
@@ -28,6 +52,7 @@ export class Project {
 
   @OneToMany(() => Task, (task) => task.project)
   tasks!: Task[];
+
   @OneToMany(() => ProjectMember, (member) => member.project)
   members!: ProjectMember[];
 
