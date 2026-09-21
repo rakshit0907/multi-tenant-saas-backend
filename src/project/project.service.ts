@@ -8,6 +8,7 @@ import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { TaskPriority, TaskStatus } from '../tasks/task.entity';
 import { Task } from '../tasks/task.entity';
 import { ActivityService } from '../activity/activity.service';
+import { Milestone } from './milestone.entity';
 @Injectable()
 export class ProjectService {
   constructor(
@@ -20,10 +21,13 @@ export class ProjectService {
     @InjectRepository(Task)
     private taskRepo: Repository<Task>,
 
+    @InjectRepository(Milestone)
+    private milestoneRepo: Repository<Milestone>,
+
     private activityService: ActivityService,
   ) {}
 
-  async create(name: string, tenantId: string, userId: string,) {
+  async create(name: string, tenantId: string, userId: string) {
     const project = await this.repo.save({
       name,
       tenant: { id: tenantId },
@@ -36,61 +40,55 @@ export class ProjectService {
     });
     return project;
   }
-  async deleteProject(id: string, tenantId: string, userId: string,) {
-  const project = await this.repo.findOne({
-    where: {
-      id,
-      tenant: {
-        id: tenantId,
+  async deleteProject(id: string, tenantId: string, userId: string) {
+    const project = await this.repo.findOne({
+      where: {
+        id,
+        tenant: {
+          id: tenantId,
+        },
       },
-    },
-    relations: ['tenant'],
-  });
+      relations: ['tenant'],
+    });
 
-  if (!project) {
-    throw new NotFoundException('Project not found');
+    if (!project) {
+      throw new NotFoundException('Project not found');
+    }
+
+    const membership = await this.memberRepo.findOne({
+      where: {
+        project: { id },
+        user: { id: userId },
+      },
+    });
+
+    if (!membership || membership.role !== ProjectRole.OWNER) {
+      throw new ForbiddenException(
+        'Only the project owner can delete this project',
+      );
+    }
+
+    await this.repo.remove(project);
+
+    return {
+      message: 'Project deleted successfully',
+    };
   }
-
-  const membership = await this.memberRepo.findOne({
-    where: {
-      project: { id },
-      user: { id: userId },
-    },
-  });
-
-  if (!membership || membership.role !== ProjectRole.OWNER) {
-    throw new ForbiddenException(
-      "Only the project owner can delete this project",
-    );
-  }
-
-  await this.repo.remove(project);
-
-  return {
-    message: "Project deleted successfully",
-  };
-}
-  async findAll(tenantId: string, userId: string,) {
-
+  async findAll(tenantId: string, userId: string) {
     const memberships = await this.memberRepo.find({
       where: {
         user: { id: userId },
-        project: { 
-          tenant: { id: tenantId }, 
+        project: {
+          tenant: { id: tenantId },
         },
-       },
-       relations: ["project"],
+      },
+      relations: ['project'],
     });
 
-    return memberships
-        .map((m) => m.project);
+    return memberships.map((m) => m.project);
   }
 
-  async getDashboard(
-    projectId: string,
-    tenantId: string,
-    userId: string,
-  ) {
+  async getDashboard(projectId: string, tenantId: string, userId: string) {
     const project = await this.repo.findOne({
       where: {
         id: projectId,
@@ -98,7 +96,7 @@ export class ProjectService {
           id: tenantId,
         },
       },
-       relations: ['tenant'],
+      relations: ['tenant'],
     });
 
     if (!project) {
@@ -114,12 +112,10 @@ export class ProjectService {
           id: userId,
         },
       },
-   });
+    });
 
     if (!membership) {
-      throw new ForbiddenException(
-        'You are not a member of this project',
-      );
+      throw new ForbiddenException('You are not a member of this project');
     }
 
     const tasks = await this.taskRepo.find({
@@ -129,6 +125,45 @@ export class ProjectService {
         },
       },
       relations: ['assignee'],
+    });
+
+    const milestones = await this.milestoneRepo.find({
+      where: {
+        project: {
+          id: projectId,
+        },
+      },
+      relations: {
+        tasks: true,
+      },
+      order: {
+        targetDate: 'ASC',
+        createdAt: 'ASC',
+      },
+    });
+
+    const milestoneSummaries = milestones.map((milestone) => {
+      const taskCount = milestone.tasks.length;
+
+      const completedTaskCount = milestone.tasks.filter(
+        (task) => task.status === TaskStatus.COMPLETED,
+      ).length;
+
+      const progress =
+        taskCount === 0
+          ? 0
+          : Math.round((completedTaskCount / taskCount) * 100);
+
+      return {
+        id: milestone.id,
+        name: milestone.name,
+        description: milestone.description,
+        targetDate: milestone.targetDate,
+        status: milestone.status,
+        taskCount,
+        completedTaskCount,
+        progress,
+      };
     });
 
     const total = tasks.length;
@@ -163,18 +198,17 @@ export class ProjectService {
     const dueToday = tasks.filter((task: any) => {
       if (!task.dueDate) return false;
 
-    const due = new Date(task.dueDate);
-    due.setHours(0, 0, 0, 0);
+      const due = new Date(task.dueDate);
+      due.setHours(0, 0, 0, 0);
 
-    return due.getTime() === today.getTime();
-  }).length;
+      return due.getTime() === today.getTime();
+    }).length;
 
     const overdue = tasks.filter((task: any) => {
       if (!task.dueDate) return false;
 
       return (
-        new Date(task.dueDate) < today &&
-        task.status !== TaskStatus.COMPLETED
+        new Date(task.dueDate) < today && task.status !== TaskStatus.COMPLETED
       );
     }).length;
 
@@ -184,31 +218,27 @@ export class ProjectService {
           task.dueDate &&
           new Date(task.dueDate) >= today &&
           task.status !== TaskStatus.COMPLETED,
-    )
-    .sort(
-      (a, b) =>
-        new Date(a.dueDate).getTime() -
-        new Date(b.dueDate).getTime(),
-    )
-    .slice(0, 5)
-    .map((task) => ({
-      id: task.id,
-      title: task.title,
-      dueDate: task.dueDate,
-      priority: task.priority,
-      status: task.status,
-      assignee: task.assignee
-        ? {
-           id: task.assignee.id,
-           name: task.assignee.name,
-        }
-        : null,
-   }));
+      )
+      .sort(
+        (a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime(),
+      )
+      .slice(0, 5)
+      .map((task) => ({
+        id: task.id,
+        title: task.title,
+        dueDate: task.dueDate,
+        priority: task.priority,
+        status: task.status,
+        assignee: task.assignee
+          ? {
+              id: task.assignee.id,
+              name: task.assignee.name,
+            }
+          : null,
+      }));
 
     const completionPercentage =
-      total === 0
-        ? 0
-        : Math.round((completed / total) * 100);
+      total === 0 ? 0 : Math.round((completed / total) * 100);
 
     const members = await this.memberRepo.count({
       where: {
@@ -219,47 +249,43 @@ export class ProjectService {
     });
 
     const projectMembers = await this.memberRepo.find({
-     where: {
-       project: {
-        id: projectId,
+      where: {
+        project: {
+          id: projectId,
+        },
       },
-    },
-    relations: ['user'],
-  });
+      relations: ['user'],
+    });
 
-   const workload = projectMembers.map((member) => {
-     const assignedTasks = tasks.filter(
-      (task) => task.assignee?.id === member.user.id,
+    const workload = projectMembers.map((member) => {
+      const assignedTasks = tasks.filter(
+        (task) => task.assignee?.id === member.user.id,
+      );
+
+      return {
+        userId: member.user.id,
+        name: member.user.name,
+        total: assignedTasks.length,
+
+        completed: assignedTasks.filter(
+          (task) => task.status === TaskStatus.COMPLETED,
+        ).length,
+
+        inProgress: assignedTasks.filter(
+          (task) => task.status === TaskStatus.IN_PROGRESS,
+        ).length,
+
+        pending: assignedTasks.filter(
+          (task) => task.status === TaskStatus.PENDING,
+        ).length,
+      };
+    });
+
+    const recentActivity = await this.activityService.getProjectActivity(
+      projectId,
+      tenantId,
+      10,
     );
-
-   return {
-     userId: member.user.id,
-     name: member.user.name,
-     total: assignedTasks.length,
-
-     completed: assignedTasks.filter(
-       (task) => task.status === TaskStatus.COMPLETED,
-     ).length,
-
-    inProgress: assignedTasks.filter(
-      (task) => task.status === TaskStatus.IN_PROGRESS,
-    ).length,
-
-    pending: assignedTasks.filter(
-      (task) => task.status === TaskStatus.PENDING,
-    ).length,
-  };
-});
-
-   
-
-    const recentActivity = (
-      await this.activityService.getProjectActivity(
-        projectId,
-        tenantId,
-        10,
-      )
-    )
 
     return {
       project: {
@@ -289,6 +315,7 @@ export class ProjectService {
       },
       workload,
       upcomingDeadlines,
+      milestones: milestoneSummaries,
       recentActivity,
     };
   }
