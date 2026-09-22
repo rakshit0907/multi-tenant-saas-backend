@@ -62,9 +62,7 @@ export class TaskCommentsService {
     });
 
     if (!membership) {
-      throw new ForbiddenException(
-        'You are not a member of this project',
-      );
+      throw new ForbiddenException('You are not a member of this project');
     }
 
     return {
@@ -82,9 +80,7 @@ export class TaskCommentsService {
     const trimmedContent = content?.trim();
 
     if (!trimmedContent) {
-      throw new BadRequestException(
-        'Comment cannot be empty',
-      );
+      throw new BadRequestException('Comment cannot be empty');
     }
 
     const { task } = await this.getTaskAndVerifyMember(
@@ -112,16 +108,8 @@ export class TaskCommentsService {
     return this.commentRepo.save(comment);
   }
 
-  async getComments(
-    taskId: string,
-    tenantId: string,
-    userId: string,
-  ) {
-    await this.getTaskAndVerifyMember(
-      taskId,
-      tenantId,
-      userId,
-    );
+  async getComments(taskId: string, tenantId: string, userId: string) {
+    await this.getTaskAndVerifyMember(taskId, tenantId, userId);
 
     return this.commentRepo.find({
       where: {
@@ -136,11 +124,7 @@ export class TaskCommentsService {
     });
   }
 
-  async deleteComment(
-    commentId: string,
-    tenantId: string,
-    userId: string,
-  ) {
+  async deleteComment(commentId: string, tenantId: string, userId: string) {
     const comment = await this.commentRepo.findOne({
       where: {
         id: commentId,
@@ -152,11 +136,7 @@ export class TaskCommentsService {
           },
         },
       },
-      relations: [
-        'author',
-        'task',
-        'task.project',
-      ],
+      relations: ['author', 'task', 'task.project'],
     });
 
     if (!comment) {
@@ -175,19 +155,14 @@ export class TaskCommentsService {
     });
 
     if (!membership) {
-      throw new ForbiddenException(
-        'You are not a member of this project',
-      );
+      throw new ForbiddenException('You are not a member of this project');
     }
 
     const isAuthor = comment.author.id === userId;
-    const isOwner =
-        membership.role === ProjectRole.OWNER;
+    const isOwner = membership.role === ProjectRole.OWNER;
 
     if (!isAuthor && !isOwner) {
-      throw new ForbiddenException(
-        'You can only delete your own comments',
-      );
+      throw new ForbiddenException('You can only delete your own comments');
     }
 
     await this.commentRepo.remove(comment);

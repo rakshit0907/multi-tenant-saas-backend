@@ -5,7 +5,11 @@ import { JwtService } from '@nestjs/jwt';
 import { Tenant } from './tenant.entity';
 import { OrganizationInvite } from './organization-invite.entity';
 import { User } from '../users/user.entity';
-import { BadRequestException, NotFoundException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  NotFoundException,
+  Injectable,
+} from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { Role } from '../common/enums/role.enum';
 @Injectable()
@@ -23,17 +27,13 @@ export class TenantService {
     private jwtService: JwtService,
   ) {}
 
- 
-  async createInvite(
-    tenantId: string,
-    email: string,
-   ) {
-     const tenant = await this.tenantRepo.findOne({
-       where: { id: tenantId },
+  async createInvite(tenantId: string, email: string) {
+    const tenant = await this.tenantRepo.findOne({
+      where: { id: tenantId },
     });
 
     if (!tenant) {
-      throw new NotFoundException("Tenant not found");
+      throw new NotFoundException('Tenant not found');
     }
 
     const existingUser = await this.userRepo.findOne({
@@ -41,7 +41,7 @@ export class TenantService {
     });
 
     if (existingUser) {
-      throw new BadRequestException("User already exists");
+      throw new BadRequestException('User already exists');
     }
 
     const token = randomUUID();
@@ -50,81 +50,75 @@ export class TenantService {
       email,
       token,
       tenant,
-      expiresAt: new Date(
-        Date.now() + 1000 * 60 * 60 * 24,
-     ),
-   });
+      expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24),
+    });
 
     await this.inviteRepo.save(invite);
 
     return {
-      message: "Invite created",
+      message: 'Invite created',
       token,
-   };
- }
+    };
+  }
 
-  async acceptInvite(
-    token: string,
-    name: string,
-    password: string,
- ) {
-   const invite = await this.inviteRepo.findOne({
-     where: {
-       token,
+  async acceptInvite(token: string, name: string, password: string) {
+    const invite = await this.inviteRepo.findOne({
+      where: {
+        token,
       },
-      relations: ["tenant"],
+      relations: ['tenant'],
     });
     if (!invite) {
-      throw new BadRequestException("Invalid invite");
-   }
+      throw new BadRequestException('Invalid invite');
+    }
 
-   if (invite.expiresAt < new Date()) {
-     throw new BadRequestException("Invite expired");
-   }
+    if (invite.expiresAt < new Date()) {
+      throw new BadRequestException('Invite expired');
+    }
 
-   const existingUser = await this.userRepo.findOne({
-     where: {
-       email: invite.email,
-     },
-   });
+    const existingUser = await this.userRepo.findOne({
+      where: {
+        email: invite.email,
+      },
+    });
 
-   if (existingUser) {
-     throw new BadRequestException("User already exists");
-   }
+    if (existingUser) {
+      throw new BadRequestException('User already exists');
+    }
 
-   const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-   const user = this.userRepo.create({
-     name,
-     email: invite.email,
-     password: hashedPassword,
-     role: Role.USER,
-     tenant: invite.tenant,
-   });
+    const user = this.userRepo.create({
+      name,
+      email: invite.email,
+      password: hashedPassword,
+      role: Role.USER,
+      tenant: invite.tenant,
+    });
 
-   const savedUser = await this.userRepo.save(user);
+    const savedUser = await this.userRepo.save(user);
 
-   invite.accepted = true;
-   await this.inviteRepo.save(invite);
+    invite.accepted = true;
+    await this.inviteRepo.save(invite);
 
-   const payload = {
-     userId: savedUser.id,
-     tenantId: invite.tenant.id,
-     role: savedUser.role,
-   };
+    const payload = {
+      userId: savedUser.id,
+      tenantId: invite.tenant.id,
+      role: savedUser.role,
+    };
 
-   const access_token = this.jwtService.sign(payload);
+    const access_token = this.jwtService.sign(payload);
 
-   return {
-     access_token,
-     user: {
-       id: savedUser.id,
-       name: savedUser.name,
-       email: savedUser.email,
-       tenantId: invite.tenant.id,
-     },
-   };
- }
+    return {
+      access_token,
+      user: {
+        id: savedUser.id,
+        name: savedUser.name,
+        email: savedUser.email,
+        tenantId: invite.tenant.id,
+      },
+    };
+  }
 
   async create(data: { name: string }) {
     if (!data.name) {
@@ -136,27 +130,24 @@ export class TenantService {
     });
 
     return await this.tenantRepo.save(tenant);
-
   }
 
-  async getOrganizationUsers(
-    tenantId: string,
-   ) {
+  async getOrganizationUsers(tenantId: string) {
     return this.userRepo.find({
       where: {
         tenant: {
-        id: tenantId,
+          id: tenantId,
+        },
       },
-    },
-     select: {
-       id: true,
-       name: true,
-       email: true,
-       role: true,
-     },
-     order: {
-       name: 'ASC',
-     },
-   });
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+      },
+      order: {
+        name: 'ASC',
+      },
+    });
   }
 }

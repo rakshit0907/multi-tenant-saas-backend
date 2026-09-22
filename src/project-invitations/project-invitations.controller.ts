@@ -16,9 +16,7 @@ import { CreateInvitationDto } from './dto/create-invitation.dto';
 @Controller('project-invitations')
 @UseGuards(AuthGuard('jwt'))
 export class ProjectInvitationsController {
-  constructor(
-    private readonly invitationService: ProjectInvitationsService,
-  ) {}
+  constructor(private readonly invitationService: ProjectInvitationsService) {}
 
   @Post('projects/:projectId')
   createInvitation(

@@ -2,10 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
-import {
-  Notification,
-  NotificationType,
-} from './notification.entity';
+import { Notification, NotificationType } from './notification.entity';
 
 import { User } from '../users/user.entity';
 import { Project } from '../project/project.entity';
@@ -38,10 +35,7 @@ export class NotificationService {
     return this.notificationRepo.save(notification);
   }
 
-  async getMyNotifications(
-    userId: string,
-    limit = 20,
-  ) {
+  async getMyNotifications(userId: string, limit = 20) {
     return this.notificationRepo.find({
       where: {
         user: {
@@ -56,9 +50,7 @@ export class NotificationService {
     });
   }
 
-  async getUnread(
-    userId: string,
-  ) {
+  async getUnread(userId: string) {
     return this.notificationRepo.find({
       where: {
         user: {
@@ -73,9 +65,7 @@ export class NotificationService {
     });
   }
 
-  async getUnreadCount(
-    userId: string,
-  ) {
+  async getUnreadCount(userId: string) {
     return this.notificationRepo.count({
       where: {
         user: {
@@ -86,19 +76,15 @@ export class NotificationService {
     });
   }
 
-  async markAsRead(
-    notificationId: string,
-    userId: string,
-  ) {
-    const notification =
-      await this.notificationRepo.findOne({
-        where: {
-          id: notificationId,
-          user: {
-            id: userId,
-          },
+  async markAsRead(notificationId: string, userId: string) {
+    const notification = await this.notificationRepo.findOne({
+      where: {
+        id: notificationId,
+        user: {
+          id: userId,
         },
-      });
+      },
+    });
 
     if (!notification) {
       return null;
@@ -109,9 +95,7 @@ export class NotificationService {
     return this.notificationRepo.save(notification);
   }
 
-  async markAllAsRead(
-    userId: string,
-  ) {
+  async markAllAsRead(userId: string) {
     await this.notificationRepo.update(
       {
         user: {

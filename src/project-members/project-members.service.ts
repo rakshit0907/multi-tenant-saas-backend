@@ -1,7 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  BadRequestException,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { ProjectRole } from '../common/enums/project-role.enum';
 import { ProjectMember } from './project-member.entity';
 import { Project } from '../project/project.entity';
@@ -23,45 +27,39 @@ export class ProjectMembersService {
     private activityService: ActivityService,
   ) {}
 
-  async addMember(
-    projectId: string,
-    userId: string,
-    requesterId: string,
-  ) {
+  async addMember(projectId: string, userId: string, requesterId: string) {
     const project = await this.projectRepo.findOne({
       where: {
         id: projectId,
-     },
+      },
       relations: ['tenant'],
-     });
+    });
 
-     if (!project) {
-       throw new NotFoundException('Project not found');
-     }
+    if (!project) {
+      throw new NotFoundException('Project not found');
+    }
 
-     await this.verifyOwner(projectId, requesterId);
+    await this.verifyOwner(projectId, requesterId);
 
-     const user = await this.userRepo.findOne({
-       where: {
+    const user = await this.userRepo.findOne({
+      where: {
         id: userId,
-       },
-       relations: ['tenant'],
-     });
+      },
+      relations: ['tenant'],
+    });
 
-     if (!user) {
-       throw new NotFoundException('User not found');
-     }
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
 
-     if (user.tenant.id !== project.tenant.id) {
-       throw new ForbiddenException(
-         'User belongs to another organization',
-       );
-     }
+    if (user.tenant.id !== project.tenant.id) {
+      throw new ForbiddenException('User belongs to another organization');
+    }
 
-     const existingMember = await this.memberRepo.findOne({
-       where: {
-         project: {
-         id: projectId,
+    const existingMember = await this.memberRepo.findOne({
+      where: {
+        project: {
+          id: projectId,
         },
         user: {
           id: userId,
@@ -70,9 +68,7 @@ export class ProjectMembersService {
     });
 
     if (existingMember) {
-      throw new BadRequestException(
-        'User is already a member of this project',
-      );
+      throw new BadRequestException('User is already a member of this project');
     }
 
     const member = this.memberRepo.create({
@@ -98,54 +94,46 @@ export class ProjectMembersService {
     return savedMember;
   }
 
-  async getMembers(projectId: string, tenantId: string,) {
-
+  async getMembers(projectId: string, tenantId: string) {
     const project = await this.projectRepo.findOne({
       where: {
-          id: projectId,
-          tenant: {
-            id: tenantId,
-          },
+        id: projectId,
+        tenant: {
+          id: tenantId,
         },
-      });
+      },
+    });
 
-     if (!project) {
-       throw new NotFoundException('Project not found');
-     }
+    if (!project) {
+      throw new NotFoundException('Project not found');
+    }
 
-     return this.memberRepo.find({
-       where: {
-         project: {
-           id: projectId,
-         },
-       },
-       relations: ['user'],
-     });
-   }
+    return this.memberRepo.find({
+      where: {
+        project: {
+          id: projectId,
+        },
+      },
+      relations: ['user'],
+    });
+  }
 
-  async removeMember(
-    projectId: string,
-    userId: string,
-    requesterId: string,
-  ) {
-
+  async removeMember(projectId: string, userId: string, requesterId: string) {
     await this.verifyOwner(projectId, requesterId);
     const member = await this.memberRepo.findOne({
       where: {
         project: { id: projectId },
         user: { id: userId },
       },
-      relations: ["project", "user"],
+      relations: ['project', 'user'],
     });
 
-    if (!member) {     
-      throw new NotFoundException("Member not found");
+    if (!member) {
+      throw new NotFoundException('Member not found');
     }
 
     if (member.role === ProjectRole.OWNER) {
-      throw new BadRequestException(
-        'Project owner cannot be removed',
-      );
+      throw new BadRequestException('Project owner cannot be removed');
     }
 
     await this.activityService.log(
@@ -161,52 +149,50 @@ export class ProjectMembersService {
 
     await this.memberRepo.remove(member);
     return {
-      message: "Member removed successfully",
+      message: 'Member removed successfully',
     };
   }
 
   async updateRole(
-  projectId: string,
-  userId: string,
-  role: ProjectRole,
-  requesterId: string,
-) {
-  await this.verifyOwner(projectId, requesterId);
+    projectId: string,
+    userId: string,
+    role: ProjectRole,
+    requesterId: string,
+  ) {
+    await this.verifyOwner(projectId, requesterId);
 
-  const member = await this.memberRepo.findOne({
-    where: {
-      project: {
-        id: projectId,
+    const member = await this.memberRepo.findOne({
+      where: {
+        project: {
+          id: projectId,
+        },
+        user: {
+          id: userId,
+        },
       },
-      user: {
-        id: userId,
-      },
-    },
-    relations: ['project', 'user'],
-   });
+      relations: ['project', 'user'],
+    });
 
-   if (!member) {
-     throw new NotFoundException('Member not found');
-   }
+    if (!member) {
+      throw new NotFoundException('Member not found');
+    }
 
-   if (member.role === ProjectRole.OWNER) {
-     throw new BadRequestException(
-       'Owner role cannot be changed',
-   );
-  }
+    if (member.role === ProjectRole.OWNER) {
+      throw new BadRequestException('Owner role cannot be changed');
+    }
 
-  if (role === ProjectRole.OWNER) {
-    throw new BadRequestException(
-      'Cannot assign OWNER role through this endpoint',
-    );
-  }
-  const oldRole = member.role;
-  member.role = role;
+    if (role === ProjectRole.OWNER) {
+      throw new BadRequestException(
+        'Cannot assign OWNER role through this endpoint',
+      );
+    }
+    const oldRole = member.role;
+    member.role = role;
 
-  const savedMember = await this.memberRepo.save(member);
+    const savedMember = await this.memberRepo.save(member);
 
-  await this.activityService.log(
-     ActivityAction.MEMBER_ROLE_CHANGED,
+    await this.activityService.log(
+      ActivityAction.MEMBER_ROLE_CHANGED,
       member.project,
       { id: requesterId } as User,
       null,
@@ -216,15 +202,12 @@ export class ProjectMembersService {
         oldRole,
         newRole: role,
       },
-  );  
+    );
 
-  return savedMember;
-}
-   
-  async getMyRole(
-    projectId: string,
-    userId: string,
-  ) {
+    return savedMember;
+  }
+
+  async getMyRole(projectId: string, userId: string) {
     const member = await this.memberRepo.findOne({
       where: {
         project: { id: projectId },
@@ -233,7 +216,7 @@ export class ProjectMembersService {
     });
 
     if (!member) {
-      throw new ForbiddenException("Not a project member");
+      throw new ForbiddenException('Not a project member');
     }
 
     return {
@@ -241,10 +224,7 @@ export class ProjectMembersService {
     };
   }
 
-  private async verifyOwner(
-    projectId: string,
-    userId: string,
-  ) {
+  private async verifyOwner(projectId: string, userId: string) {
     const membership = await this.memberRepo.findOne({
       where: {
         project: { id: projectId },

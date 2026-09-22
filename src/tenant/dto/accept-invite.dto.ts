@@ -1,5 +1,5 @@
 export class AcceptInviteDto {
-    token!: string;
-    name!: string;
-    password!: string;
+  token!: string;
+  name!: string;
+  password!: string;
 }

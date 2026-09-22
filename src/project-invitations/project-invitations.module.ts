@@ -10,22 +10,11 @@ import { ProjectMember } from '../project-members/project-member.entity';
 import { NotificationsModule } from '../notifications/notifications.module';
 @Module({
   imports: [
-    TypeOrmModule.forFeature([
-      ProjectInvitation,
-      Project,
-      User,
-      ProjectMember,
-    ]),
+    TypeOrmModule.forFeature([ProjectInvitation, Project, User, ProjectMember]),
     NotificationsModule,
   ],
-  providers: [
-    ProjectInvitationsService,
-  ],
-  exports: [
-    ProjectInvitationsService,
-  ],
-  controllers: [
-    ProjectInvitationsController,
-],
+  providers: [ProjectInvitationsService],
+  exports: [ProjectInvitationsService],
+  controllers: [ProjectInvitationsController],
 })
 export class ProjectInvitationsModule {}

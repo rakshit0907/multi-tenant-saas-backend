@@ -2,10 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
-import {
-  Activity,
-  ActivityAction,
-} from './activity.entity';
+import { Activity, ActivityAction } from './activity.entity';
 
 import { Project } from '../project/project.entity';
 import { User } from '../users/user.entity';
@@ -25,7 +22,6 @@ export class ActivityService {
     task?: Task | null,
     metadata?: Record<string, any>,
   ) {
-    
     const activity = this.activityRepo.create({
       action,
       project,
@@ -37,42 +33,41 @@ export class ActivityService {
     return this.activityRepo.save(activity);
   }
 
-  async getProjectActivity(projectId: string, tenantId: string, limit = 10,) {
-  const activities = await this.activityRepo.find({
-    where: {
-      project: {
-        id: projectId,
-        tenant: {
-          id: tenantId,
+  async getProjectActivity(projectId: string, tenantId: string, limit = 10) {
+    const activities = await this.activityRepo.find({
+      where: {
+        project: {
+          id: projectId,
+          tenant: {
+            id: tenantId,
+          },
         },
       },
-    },
-    relations: ['user', 'task'],
-    order: {
-      createdAt: 'DESC',
-    },
-    take: limit,
-  });
+      relations: ['user', 'task'],
+      order: {
+        createdAt: 'DESC',
+      },
+      take: limit,
+    });
 
-  return activities.map((activity) => ({
-    id: activity.id,
-    action: activity.action,
+    return activities.map((activity) => ({
+      id: activity.id,
+      action: activity.action,
 
-    user: {
-      id: activity.user.id,
-      name: activity.user.name,
-    },
+      user: {
+        id: activity.user.id,
+        name: activity.user.name,
+      },
 
-    task: activity.task
-      ? {
-          id: activity.task.id,
-          title: activity.task.title,
-        }
-      : null,
+      task: activity.task
+        ? {
+            id: activity.task.id,
+            title: activity.task.title,
+          }
+        : null,
 
-    metadata: activity.metadata,
-    createdAt: activity.createdAt,
-  }));
-  
+      metadata: activity.metadata,
+      createdAt: activity.createdAt,
+    }));
   }
 }

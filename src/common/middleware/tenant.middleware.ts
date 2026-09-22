@@ -15,9 +15,7 @@ export class TenantMiddleware implements NestMiddleware {
         const decoded: any = jwt.verify(token, 'secretKey'); // ⚠️ same secret as login
 
         req['tenantId'] = decoded.tenantId;
-
-      } catch (error) {
-      }
+      } catch (error) {}
     } else {
     }
 

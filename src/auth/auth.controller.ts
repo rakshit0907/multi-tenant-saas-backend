@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, Query, Res, } from '@nestjs/common';
+import { Controller, Post, Body, Get, Query, Res } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { SignupDto } from './dto/signup.dto';
 import { LoginDto } from './dto/login.dto';
@@ -16,55 +16,42 @@ export class AuthController {
     return this.authService.signup(data);
   }
   @Post('login')
-login(@Body() data: LoginDto) {
-  return this.authService.login(data);
-}
+  login(@Body() data: LoginDto) {
+    return this.authService.login(data);
+  }
 
-@Post('verify-email')
-verifyEmail(@Body() data: VerifyEmailDto) {
-  return this.authService.verifyEmail(data.token);
-}
+  @Post('verify-email')
+  verifyEmail(@Body() data: VerifyEmailDto) {
+    return this.authService.verifyEmail(data.token);
+  }
 
-@Post('resend-verification')
-resendVerification(@Body() data: ResendVerificationDto) {
-  return this.authService.resendVerification(data.email);
-}
+  @Post('resend-verification')
+  resendVerification(@Body() data: ResendVerificationDto) {
+    return this.authService.resendVerification(data.email);
+  }
 
-@Post('forgot-password')
-forgotPassword(
-  @Body() dto: ForgotPasswordDto,
-) {
-  return this.authService.forgotPassword(
-    dto.email,
-  );
-}
+  @Post('forgot-password')
+  forgotPassword(@Body() dto: ForgotPasswordDto) {
+    return this.authService.forgotPassword(dto.email);
+  }
 
-@Post('reset-password')
-resetPassword(
-  @Body() dto: ResetPasswordDto,
-) {
-  return this.authService.resetPassword(
-    dto.token,
-    dto.newPassword,
-  );
-}
+  @Post('reset-password')
+  resetPassword(@Body() dto: ResetPasswordDto) {
+    return this.authService.resetPassword(dto.token, dto.newPassword);
+  }
 
-@Get('reset-password-link')
-resetPasswordLink(
-  @Query('token') token: string,
-  @Res() res: Response,
-) {
-  const appUrl =
-    `multisaas://reset-password?token=${encodeURIComponent(token)}`;
+  @Get('reset-password-link')
+  resetPasswordLink(@Query('token') token: string, @Res() res: Response) {
+    const appUrl = `multisaas://reset-password?token=${encodeURIComponent(token)}`;
 
-  return res.redirect(appUrl);
-}
+    return res.redirect(appUrl);
+  }
 
-@Get('verify-email-link')
-async verifyEmailLink(@Query('token') token: string) {
-  await this.authService.verifyEmail(token);
+  @Get('verify-email-link')
+  async verifyEmailLink(@Query('token') token: string) {
+    await this.authService.verifyEmail(token);
 
-  return `
+    return `
     <html>
       <head>
         <title>Email Verified</title>
@@ -84,5 +71,5 @@ async verifyEmailLink(@Query('token') token: string) {
       </body>
     </html>
   `;
-}
+  }
 }

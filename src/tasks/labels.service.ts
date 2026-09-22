@@ -25,10 +25,7 @@ export class LabelsService {
     private readonly memberRepo: Repository<ProjectMember>,
   ) {}
 
-  private async getProject(
-    projectId: string,
-    tenantId: string,
-  ) {
+  private async getProject(projectId: string, tenantId: string) {
     const project = await this.projectRepo.findOne({
       where: {
         id: projectId,
@@ -48,10 +45,7 @@ export class LabelsService {
     return project;
   }
 
-  private async getMembership(
-    projectId: string,
-    userId: string,
-  ) {
+  private async getMembership(projectId: string, userId: string) {
     const membership = await this.memberRepo.findOne({
       where: {
         project: {
@@ -64,141 +58,104 @@ export class LabelsService {
     });
 
     if (!membership) {
-      throw new ForbiddenException(
-        'You are not a member of this project',
-      );
+      throw new ForbiddenException('You are not a member of this project');
     }
 
     return membership;
   }
 
-  private async verifyOwner(
-    projectId: string,
-    userId: string,
-  ) {
-    const membership = await this.getMembership(
-      projectId,
-      userId,
-    );
+  private async verifyOwner(projectId: string, userId: string) {
+    const membership = await this.getMembership(projectId, userId);
 
     if (membership.role !== ProjectRole.OWNER) {
-      throw new ForbiddenException(
-        'Only project owners can manage labels',
-      );
+      throw new ForbiddenException('Only project owners can manage labels');
     }
   }
 
-  private async getLabel(
-  labelId: string,
-  projectId: string,
-) {
-  const label = await this.labelRepo.findOne({
-    where: {
-      id: labelId,
-      project: {
-        id: projectId,
+  private async getLabel(labelId: string, projectId: string) {
+    const label = await this.labelRepo.findOne({
+      where: {
+        id: labelId,
+        project: {
+          id: projectId,
+        },
       },
-    },
-    relations: ['project'],
-  });
+      relations: ['project'],
+    });
 
-  if (!label) {
-    throw new NotFoundException(
-      'Label not found',
-    );
+    if (!label) {
+      throw new NotFoundException('Label not found');
+    }
+
+    return label;
   }
-
-  return label;
-}
 
   async updateLabel(
-  labelId: string,
-  projectId: string,
-  tenantId: string,
-  userId: string,
-  name?: string,
-  color?: string,
-) {
-  await this.getProject(
-    projectId,
-    tenantId,
-  );
+    labelId: string,
+    projectId: string,
+    tenantId: string,
+    userId: string,
+    name?: string,
+    color?: string,
+  ) {
+    await this.getProject(projectId, tenantId);
 
-  await this.verifyOwner(
-    projectId,
-    userId,
-  );
+    await this.verifyOwner(projectId, userId);
 
-  const label = await this.getLabel(
-    labelId,
-    projectId,
-  );
+    const label = await this.getLabel(labelId, projectId);
 
-  if (name !== undefined) {
-    const cleanName = name.trim();
+    if (name !== undefined) {
+      const cleanName = name.trim();
 
-    if (!cleanName) {
-      throw new BadRequestException(
-        'Label name cannot be empty',
-      );
+      if (!cleanName) {
+        throw new BadRequestException('Label name cannot be empty');
+      }
+
+      const existing = await this.labelRepo
+        .createQueryBuilder('label')
+        .where('label.projectId = :projectId', {
+          projectId,
+        })
+        .andWhere('LOWER(label.name) = LOWER(:name)', {
+          name: cleanName,
+        })
+        .andWhere('label.id != :labelId', {
+          labelId,
+        })
+        .getOne();
+
+      if (existing) {
+        throw new BadRequestException('A label with this name already exists');
+      }
+
+      label.name = cleanName;
     }
 
-    const existing = await this.labelRepo
-      .createQueryBuilder('label')
-      .where('label.projectId = :projectId', {
-        projectId,
-      })
-      .andWhere('LOWER(label.name) = LOWER(:name)', {
-        name: cleanName,
-      })
-      .andWhere('label.id != :labelId', {
-        labelId,
-      })
-      .getOne();
-
-    if (existing) {
-      throw new BadRequestException(
-        'A label with this name already exists',
-      );
+    if (color !== undefined) {
+      label.color = color;
     }
 
-    label.name = cleanName;
+    return this.labelRepo.save(label);
   }
 
-  if (color !== undefined) {
-    label.color = color;
+  async deleteLabel(
+    labelId: string,
+    projectId: string,
+    tenantId: string,
+    userId: string,
+  ) {
+    await this.getProject(projectId, tenantId);
+
+    await this.verifyOwner(projectId, userId);
+
+    const label = await this.getLabel(labelId, projectId);
+
+    await this.labelRepo.remove(label);
+
+    return {
+      message: 'Label deleted successfully',
+    };
   }
-
-  return this.labelRepo.save(label);
-}
-
- async deleteLabel(
-  labelId: string,
-  projectId: string,
-  tenantId: string,
-  userId: string,
-) {
-  await this.getProject(
-    projectId,
-    tenantId,
-  );
-
-  await this.verifyOwner(
-    projectId,
-    userId,
-  );
-
-  const label = await this.getLabel(
-    labelId,
-    projectId,
-  );
-
-  await this.labelRepo.remove(label);
-
-  return {
-    message: 'Label deleted successfully',
-  };
-}
 
   async createLabel(
     projectId: string,
@@ -207,22 +164,14 @@ export class LabelsService {
     name: string,
     color?: string,
   ) {
-    const project = await this.getProject(
-      projectId,
-      tenantId,
-    );
+    const project = await this.getProject(projectId, tenantId);
 
-    await this.verifyOwner(
-      projectId,
-      userId,
-    );
+    await this.verifyOwner(projectId, userId);
 
     const cleanName = name.trim();
 
     if (!cleanName) {
-      throw new BadRequestException(
-        'Label name is required',
-      );
+      throw new BadRequestException('Label name is required');
     }
 
     const existing = await this.labelRepo
@@ -236,9 +185,7 @@ export class LabelsService {
       .getOne();
 
     if (existing) {
-      throw new BadRequestException(
-        'A label with this name already exists',
-      );
+      throw new BadRequestException('A label with this name already exists');
     }
 
     const label = this.labelRepo.create({
@@ -250,20 +197,10 @@ export class LabelsService {
     return this.labelRepo.save(label);
   }
 
-  async getLabels(
-    projectId: string,
-    tenantId: string,
-    userId: string,
-  ) {
-    await this.getProject(
-      projectId,
-      tenantId,
-    );
+  async getLabels(projectId: string, tenantId: string, userId: string) {
+    await this.getProject(projectId, tenantId);
 
-    await this.getMembership(
-      projectId,
-      userId,
-    );
+    await this.getMembership(projectId, userId);
 
     return this.labelRepo.find({
       where: {

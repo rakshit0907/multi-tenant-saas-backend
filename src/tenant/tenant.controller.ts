@@ -1,39 +1,29 @@
-import { Controller, Post, Body, Req, UseGuards, Get} from '@nestjs/common';
+import { Controller, Post, Body, Req, UseGuards, Get } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { TenantService } from './tenant.service';
-import { AcceptInviteDto } from "./dto/accept-invite.dto";
+import { AcceptInviteDto } from './dto/accept-invite.dto';
 @Controller('tenant')
 export class TenantController {
-  constructor(
-    private readonly tenantService: TenantService,
-  ) {}
+  constructor(private readonly tenantService: TenantService) {}
 
   @UseGuards(AuthGuard('jwt'))
   @Post('invite')
-  createInvite(
-    @Body('email') email: string,
-    @Req() req,
-  ) {
-    return this.tenantService.createInvite(
-      req.user.tenantId,
-      email,
-    );
+  createInvite(@Body('email') email: string, @Req() req) {
+    return this.tenantService.createInvite(req.user.tenantId, email);
   }
 
   @Post('accept-invite')
-  acceptInvite(
-    @Body() body: AcceptInviteDto,
-  ) {
+  acceptInvite(@Body() body: AcceptInviteDto) {
     return this.tenantService.acceptInvite(
-        body.token,
-        body.name,
-        body.password,
+      body.token,
+      body.name,
+      body.password,
     );
   }
 
   @UseGuards(AuthGuard('jwt'))
   @Get('users')
   getOrganizationUsers(@Req() req) {
-    return this.tenantService.getOrganizationUsers(req.user.tenantId,);
+    return this.tenantService.getOrganizationUsers(req.user.tenantId);
   }
 }

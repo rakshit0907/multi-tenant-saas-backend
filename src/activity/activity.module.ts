@@ -5,9 +5,7 @@ import { Activity } from './activity.entity';
 import { ActivityService } from './activity.service';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([Activity]),
-  ],
+  imports: [TypeOrmModule.forFeature([Activity])],
   controllers: [ActivityController],
   providers: [ActivityService],
   exports: [ActivityService],

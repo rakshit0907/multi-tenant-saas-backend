@@ -1,4 +1,12 @@
-import { Body, Controller, Param, Post, Get, Delete, Patch, } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Param,
+  Post,
+  Get,
+  Delete,
+  Patch,
+} from '@nestjs/common';
 import { ProjectMembersService } from './project-members.service';
 import { UseGuards, Req } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
@@ -6,9 +14,7 @@ import { AddMemberDto } from './dto/add-member.dto';
 import { UpdateMemberRoleDto } from './dto/update-member-role.dto';
 @Controller('projects')
 export class ProjectMembersController {
-  constructor(
-    private readonly projectMembersService: ProjectMembersService,
-  ) {}
+  constructor(private readonly projectMembersService: ProjectMembersService) {}
   @UseGuards(AuthGuard('jwt'))
   @Post(':projectId/members')
   async addMember(
@@ -22,25 +28,16 @@ export class ProjectMembersController {
       req.user.userId,
     );
   }
-  
+
   @UseGuards(AuthGuard('jwt'))
   @Get(':projectId/my-role')
-   getMyRole(
-     @Param('projectId') projectId: string,
-     @Req() req,
-  ) {
-   return this.projectMembersService.getMyRole(
-     projectId,
-     req.user.userId,
-   );
- }
+  getMyRole(@Param('projectId') projectId: string, @Req() req) {
+    return this.projectMembersService.getMyRole(projectId, req.user.userId);
+  }
   @UseGuards(AuthGuard('jwt'))
   @Get(':projectId/members')
-  getMembers(
-    @Param('projectId') projectId: string,
-    @Req() req: any,
-  ) {
-    return this.projectMembersService.getMembers(projectId, req.user.tenantId,);
+  getMembers(@Param('projectId') projectId: string, @Req() req: any) {
+    return this.projectMembersService.getMembers(projectId, req.user.tenantId);
   }
   @UseGuards(AuthGuard('jwt'))
   @Delete(':projectId/members/:userId')
@@ -64,11 +61,11 @@ export class ProjectMembersController {
     @Body() body: UpdateMemberRoleDto,
     @Req() req: any,
   ) {
-   return this.projectMembersService.updateRole(
-     projectId,
-     userId,
-     body.role,
-     req.user.userId,
-   );
-}
+    return this.projectMembersService.updateRole(
+      projectId,
+      userId,
+      body.role,
+      req.user.userId,
+    );
+  }
 }

@@ -8,7 +8,7 @@ import { JwtStrategy } from './jwt.strategy';
 
 @Module({
   imports: [
-    UsersModule,   // ✅ REQUIRED
+    UsersModule, // ✅ REQUIRED
     TenantModule,
     JwtModule.register({
       secret: 'secretKey',

@@ -7,7 +7,6 @@ import { Roles } from '../auth/roles.decorator';
 
 @Controller('users')
 export class UsersController {
-
   constructor(private usersService: UsersService) {} // ✅ ADD THIS
 
   @Get('profile')
@@ -16,5 +15,4 @@ export class UsersController {
   getAllUsers(@Req() req) {
     return this.usersService.findAll();
   }
-
 }

@@ -77,9 +77,7 @@ export class ProjectInvitationsService {
     }
 
     if (invitedUser.tenant.id !== tenantId) {
-      throw new ForbiddenException(
-        'User belongs to another organization',
-      );
+      throw new ForbiddenException('User belongs to another organization');
     }
 
     const existingMember = await this.memberRepo.findOne({
@@ -94,28 +92,23 @@ export class ProjectInvitationsService {
     });
 
     if (existingMember) {
-      throw new BadRequestException(
-        'User is already a member of this project',
-      );
+      throw new BadRequestException('User is already a member of this project');
     }
 
-    const existingInvitation =
-      await this.invitationRepo.findOne({
-        where: {
-          project: {
-            id: projectId,
-          },
-          invitedUser: {
-            id: invitedUserId,
-          },
-          status: InvitationStatus.PENDING,
+    const existingInvitation = await this.invitationRepo.findOne({
+      where: {
+        project: {
+          id: projectId,
         },
-      });
+        invitedUser: {
+          id: invitedUserId,
+        },
+        status: InvitationStatus.PENDING,
+      },
+    });
 
     if (existingInvitation) {
-      throw new BadRequestException(
-        'A pending invitation already exists',
-      );
+      throw new BadRequestException('A pending invitation already exists');
     }
 
     const invitation = this.invitationRepo.create({
@@ -125,28 +118,24 @@ export class ProjectInvitationsService {
       status: InvitationStatus.PENDING,
     });
 
-    const savedInvitation =
-      await this.invitationRepo.save(invitation);
+    const savedInvitation = await this.invitationRepo.save(invitation);
 
     await this.notificationService.create(
       invitedUser,
       NotificationType.PROJECT_INVITATION,
       'New project invitation',
       `You have been invited to join ${project.name}`,
-       project,
-    {
-      invitationId: savedInvitation.id,
-      invitedById: invitedBy.id,
-    },
-  );
+      project,
+      {
+        invitationId: savedInvitation.id,
+        invitedById: invitedBy.id,
+      },
+    );
 
-   return savedInvitation;
+    return savedInvitation;
   }
 
-  async getMyInvitations(
-    userId: string,
-    tenantId: string,
-  ) {
+  async getMyInvitations(userId: string, tenantId: string) {
     return this.invitationRepo.find({
       where: {
         invitedUser: {
@@ -157,10 +146,7 @@ export class ProjectInvitationsService {
         },
         status: InvitationStatus.PENDING,
       },
-      relations: [
-        'project',
-        'invitedBy',
-      ],
+      relations: ['project', 'invitedBy'],
       order: {
         createdAt: 'DESC',
       },
@@ -183,16 +169,11 @@ export class ProjectInvitationsService {
         },
         status: InvitationStatus.PENDING,
       },
-      relations: [
-        'project',
-        'invitedUser',
-      ],
+      relations: ['project', 'invitedUser'],
     });
 
     if (!invitation) {
-      throw new NotFoundException(
-        'Pending invitation not found',
-      );
+      throw new NotFoundException('Pending invitation not found');
     }
 
     const existingMember = await this.memberRepo.findOne({
@@ -250,9 +231,7 @@ export class ProjectInvitationsService {
     });
 
     if (!invitation) {
-      throw new NotFoundException(
-        'Pending invitation not found',
-      );
+      throw new NotFoundException('Pending invitation not found');
     }
 
     invitation.status = InvitationStatus.REJECTED;

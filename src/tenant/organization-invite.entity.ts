@@ -1,31 +1,36 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn, } from "typeorm";
-import { Tenant } from "../tenant/tenant.entity";
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  CreateDateColumn,
+} from 'typeorm';
+import { Tenant } from '../tenant/tenant.entity';
 
 @Entity()
 export class OrganizationInvite {
-    @PrimaryGeneratedColumn("uuid")
-    id!: string; 
-    
-    @Column()
-    email!: string;
+  @PrimaryGeneratedColumn('uuid')
+  id!: string;
 
-    @Column({ unique: true })
-    token!: string;
+  @Column()
+  email!: string;
 
-    @ManyToOne(() => Tenant, {
-        onDelete: "CASCADE",
-    })
-    tenant!: Tenant;
+  @Column({ unique: true })
+  token!: string;
 
-    @Column({
-        default: false,
-    })
-    accepted!: boolean;
+  @ManyToOne(() => Tenant, {
+    onDelete: 'CASCADE',
+  })
+  tenant!: Tenant;
 
-    @Column()
-    expiresAt!: Date;
+  @Column({
+    default: false,
+  })
+  accepted!: boolean;
 
-    @CreateDateColumn()
-    createdAt!: Date;
-    
+  @Column()
+  expiresAt!: Date;
+
+  @CreateDateColumn()
+  createdAt!: Date;
 }

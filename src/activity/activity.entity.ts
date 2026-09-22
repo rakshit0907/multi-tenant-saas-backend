@@ -36,30 +36,21 @@ export class Activity {
   })
   action!: ActivityAction;
 
-  @ManyToOne(
-    () => Project,
-    {
-      nullable: false,
-      onDelete: 'CASCADE',
-    },
-  )
+  @ManyToOne(() => Project, {
+    nullable: false,
+    onDelete: 'CASCADE',
+  })
   project!: Project;
 
-  @ManyToOne(
-    () => User,
-    {
-      nullable: false,
-    },
-  )
+  @ManyToOne(() => User, {
+    nullable: false,
+  })
   user!: User;
 
-  @ManyToOne(
-    () => Task,
-    {
-      nullable: true,
-      onDelete: 'SET NULL',
-    },
-  )
+  @ManyToOne(() => Task, {
+    nullable: true,
+    onDelete: 'SET NULL',
+  })
   task!: Task | null;
 
   @Column({

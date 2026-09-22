@@ -10,11 +10,7 @@ import { Project } from '../project/project.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([
-      ProjectMember,
-      User,
-      Project,
-    ]),
+    TypeOrmModule.forFeature([ProjectMember, User, Project]),
     ActivityModule,
   ],
   controllers: [ProjectMembersController],

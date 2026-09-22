@@ -8,7 +8,8 @@ export class ProtectedController {
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('user')
   @Get()
-  getProtected(@Req() req) {// debug
+  getProtected(@Req() req) {
+    // debug
 
     return {
       message: 'Tenant check working 🚀',
