@@ -1,7 +1,15 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, OneToMany } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  OneToMany,
+} from 'typeorm';
 import { Project } from '../project/project.entity';
 import { User } from '../users/user.entity';
 import { OrganizationInvite } from './organization-invite.entity';
+import { WorkspaceMember } from './workspace-member.entity';
+
 @Entity()
 export class Tenant {
   @PrimaryGeneratedColumn('uuid')
@@ -21,9 +29,9 @@ export class Tenant {
   @OneToMany(() => User, (user) => user.tenant)
   users!: User[];
 
-  @OneToMany(
-    () => OrganizationInvite,
-    (invite) => invite.tenant,
-  )
+  @OneToMany(() => OrganizationInvite, (invite) => invite.tenant)
   invites!: OrganizationInvite[];
+
+  @OneToMany(() => WorkspaceMember, (member) => member.tenant)
+  members!: WorkspaceMember[];
 }

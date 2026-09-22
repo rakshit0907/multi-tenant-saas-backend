@@ -1,8 +1,15 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  CreateDateColumn,
+} from 'typeorm';
 import { Tenant } from '../tenant/tenant.entity';
 import { Role } from '../common/enums/role.enum';
 import { OneToMany } from 'typeorm';
 import { ProjectMember } from '../project-members/project-member.entity';
+import { WorkspaceMember } from '../tenant/workspace-member.entity';
 
 @Entity()
 export class User {
@@ -54,9 +61,9 @@ export class User {
   })
   passwordResetExpiresAt!: Date | null;
 
-  @OneToMany(
-    () => ProjectMember,
-    (member) => member.user,
-  )
+  @OneToMany(() => ProjectMember, (member) => member.user)
   projects!: ProjectMember[];
+
+  @OneToMany(() => WorkspaceMember, (member) => member.user)
+  workspaceMemberships!: WorkspaceMember[];
 }

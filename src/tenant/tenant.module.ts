@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { JwtModule } from '@nestjs/jwt';
-
+import { WorkspaceMember } from './workspace-member.entity';
 import { Tenant } from './tenant.entity';
 import { TenantService } from './tenant.service';
 import { TenantController } from './tenant.controller';
@@ -14,6 +14,7 @@ import { User } from '../users/user.entity';
       Tenant,
       OrganizationInvite,
       User,
+      WorkspaceMember,
     ]),
     JwtModule.register({
       secret: 'secretKey',
