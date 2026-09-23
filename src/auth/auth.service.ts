@@ -7,26 +7,40 @@ import {
 import { SignupDto } from './dto/signup.dto';
 import { LoginDto } from './dto/login.dto';
 import { UsersService } from '../users/users.service';
-import { TenantService } from '../tenant/tenant.service';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { createHash, randomBytes } from 'crypto';
 import { EmailService } from '../email/email.service';
+import { DataSource } from 'typeorm';
+import { Tenant } from '../tenant/tenant.entity';
+import { User } from '../users/user.entity';
+import {
+  WorkspaceMember,
+  WorkspaceRole,
+} from '../tenant/workspace-member.entity';
 
 @Injectable()
 export class AuthService {
   constructor(
     private usersService: UsersService,
-    private tenantService: TenantService,
     private jwtService: JwtService,
     private emailService: EmailService,
+    private dataSource: DataSource,
   ) {}
 
   async signup(data: SignupDto) {
     const { name, email, password, tenantName } = data;
-    const normalizedEmail = email.trim().toLowerCase();
 
-    if (!name || !email || !password || !tenantName) {
+    const normalizedName = name?.trim();
+    const normalizedEmail = email?.trim().toLowerCase();
+    const normalizedTenantName = tenantName?.trim();
+
+    if (
+      !normalizedName ||
+      !normalizedEmail ||
+      !password ||
+      !normalizedTenantName
+    ) {
       throw new BadRequestException('All fields are required');
     }
 
@@ -34,14 +48,6 @@ export class AuthService {
 
     if (existingUser) {
       throw new BadRequestException('User already exists');
-    }
-
-    const tenant = await this.tenantService.create({
-      name: tenantName,
-    });
-
-    if (!tenant) {
-      throw new BadRequestException('Tenant creation failed');
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -54,19 +60,39 @@ export class AuthService {
 
     const verificationExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
-    const user = await this.usersService.create({
-      name,
-      email: normalizedEmail,
-      password: hashedPassword,
-      tenant,
-      isEmailVerified: false,
-      emailVerificationToken: verificationTokenHash,
-      emailVerificationExpiresAt: verificationExpiresAt,
-    });
+    const user = await this.dataSource.transaction(async (manager) => {
+      const tenantRepo = manager.getRepository(Tenant);
+      const userRepo = manager.getRepository(User);
+      const workspaceMemberRepo = manager.getRepository(WorkspaceMember);
 
-    if (!user) {
-      throw new BadRequestException('User creation failed');
-    }
+      const tenant = tenantRepo.create({
+        name: normalizedTenantName,
+      });
+
+      const savedTenant = await tenantRepo.save(tenant);
+
+      const newUser = userRepo.create({
+        name: normalizedName,
+        email: normalizedEmail,
+        password: hashedPassword,
+        tenant: savedTenant,
+        isEmailVerified: false,
+        emailVerificationToken: verificationTokenHash,
+        emailVerificationExpiresAt: verificationExpiresAt,
+      });
+
+      const savedUser = await userRepo.save(newUser);
+
+      const workspaceMember = workspaceMemberRepo.create({
+        tenant: savedTenant,
+        user: savedUser,
+        role: WorkspaceRole.OWNER,
+      });
+
+      await workspaceMemberRepo.save(workspaceMember);
+
+      return savedUser;
+    });
 
     try {
       await this.emailService.sendVerificationEmail(
@@ -88,7 +114,6 @@ export class AuthService {
       },
     };
   }
-
   async verifyEmail(token: string) {
     if (!token) {
       throw new BadRequestException('Verification token is required');
