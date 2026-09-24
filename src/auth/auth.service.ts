@@ -19,10 +19,13 @@ import {
   WorkspaceRole,
 } from '../tenant/workspace-member.entity';
 
+import { TenantService } from '../tenant/tenant.service';
+
 @Injectable()
 export class AuthService {
   constructor(
     private usersService: UsersService,
+    private tenantService: TenantService,
     private jwtService: JwtService,
     private emailService: EmailService,
     private dataSource: DataSource,
