@@ -179,6 +179,32 @@ export class TenantService {
     }));
   }
 
+  async getInitialWorkspace(userId: string) {
+    const membership = await this.workspaceMemberRepo.findOne({
+      where: {
+        user: {
+          id: userId,
+        },
+      },
+      relations: {
+        tenant: true,
+      },
+      order: {
+        createdAt: 'ASC',
+      },
+    });
+
+    if (!membership) {
+      throw new ForbiddenException('User does not belong to any workspace');
+    }
+
+    return {
+      id: membership.tenant.id,
+      name: membership.tenant.name,
+      role: membership.role,
+    };
+  }
+
   async switchWorkspace(userId: string, tenantId: string, globalRole: Role) {
     const membership = await this.workspaceMemberRepo.findOne({
       where: {

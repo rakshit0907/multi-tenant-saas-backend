@@ -172,10 +172,13 @@ export class AuthService {
       );
     }
 
+    const workspace = await this.tenantService.getInitialWorkspace(user.id);
+
     const payload = {
       userId: user.id,
-      tenantId: user.tenant?.id,
+      tenantId: workspace.id,
       role: user.role,
+      workspaceRole: workspace.role,
     };
 
     const token = this.jwtService.sign(payload);
@@ -187,8 +190,14 @@ export class AuthService {
         id: user.id,
         name: user.name,
         email: user.email,
-        tenantId: user.tenant?.id,
+        tenantId: workspace.id,
         role: user.role,
+        workspaceRole: workspace.role,
+      },
+      workspace: {
+        id: workspace.id,
+        name: workspace.name,
+        role: workspace.role,
       },
     };
   }
