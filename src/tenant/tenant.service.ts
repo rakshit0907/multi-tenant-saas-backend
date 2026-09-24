@@ -7,11 +7,13 @@ import { OrganizationInvite } from './organization-invite.entity';
 import { User } from '../users/user.entity';
 import {
   BadRequestException,
+  ForbiddenException,
   NotFoundException,
   Injectable,
 } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { Role } from '../common/enums/role.enum';
+import { WorkspaceMember } from './workspace-member.entity';
 @Injectable()
 export class TenantService {
   constructor(
@@ -23,6 +25,9 @@ export class TenantService {
 
     @InjectRepository(User)
     private userRepo: Repository<User>,
+
+    @InjectRepository(WorkspaceMember)
+    private workspaceMemberRepo: Repository<WorkspaceMember>,
 
     private jwtService: JwtService,
   ) {}
@@ -149,5 +154,67 @@ export class TenantService {
         name: 'ASC',
       },
     });
+  }
+
+  async getUserWorkspaces(userId: string) {
+    const memberships = await this.workspaceMemberRepo.find({
+      where: {
+        user: {
+          id: userId,
+        },
+      },
+      relations: {
+        tenant: true,
+      },
+      order: {
+        createdAt: 'ASC',
+      },
+    });
+
+    return memberships.map((membership) => ({
+      id: membership.tenant.id,
+      name: membership.tenant.name,
+      role: membership.role,
+      joinedAt: membership.createdAt,
+    }));
+  }
+
+  async switchWorkspace(userId: string, tenantId: string, globalRole: Role) {
+    const membership = await this.workspaceMemberRepo.findOne({
+      where: {
+        user: {
+          id: userId,
+        },
+        tenant: {
+          id: tenantId,
+        },
+      },
+      relations: {
+        tenant: true,
+      },
+    });
+
+    if (!membership) {
+      throw new ForbiddenException('You are not a member of this workspace');
+    }
+
+    const payload = {
+      userId,
+      tenantId: membership.tenant.id,
+      role: globalRole,
+      workspaceRole: membership.role,
+    };
+
+    const token = this.jwtService.sign(payload);
+
+    return {
+      message: 'Workspace switched successfully',
+      token,
+      workspace: {
+        id: membership.tenant.id,
+        name: membership.tenant.name,
+        role: membership.role,
+      },
+    };
   }
 }
