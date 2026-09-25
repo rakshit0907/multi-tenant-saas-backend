@@ -1,5 +1,5 @@
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { Tenant } from './tenant.entity';
@@ -13,7 +13,7 @@ import {
 } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { Role } from '../common/enums/role.enum';
-import { WorkspaceMember } from './workspace-member.entity';
+import { WorkspaceMember, WorkspaceRole } from './workspace-member.entity';
 @Injectable()
 export class TenantService {
   constructor(
@@ -30,6 +30,7 @@ export class TenantService {
     private workspaceMemberRepo: Repository<WorkspaceMember>,
 
     private jwtService: JwtService,
+    private dataSource: DataSource,
   ) {}
 
   async createInvite(tenantId: string, email: string) {
@@ -242,5 +243,48 @@ export class TenantService {
         role: membership.role,
       },
     };
+  }
+
+  async createWorkspace(userId: string, name: string) {
+    const workspaceName = name?.trim();
+
+    if (!workspaceName) {
+      throw new BadRequestException('Workspace name is required');
+    }
+
+    return this.dataSource.transaction(async (manager) => {
+      const userRepo = manager.getRepository(User);
+      const tenantRepo = manager.getRepository(Tenant);
+      const workspaceMemberRepo = manager.getRepository(WorkspaceMember);
+
+      const user = await userRepo.findOne({
+        where: { id: userId },
+      });
+
+      if (!user) {
+        throw new NotFoundException('User not found');
+      }
+
+      const workspace = tenantRepo.create({
+        name: workspaceName,
+      });
+
+      const savedWorkspace = await tenantRepo.save(workspace);
+
+      const membership = workspaceMemberRepo.create({
+        tenant: savedWorkspace,
+        user,
+        role: WorkspaceRole.OWNER,
+      });
+
+      await workspaceMemberRepo.save(membership);
+
+      return {
+        id: savedWorkspace.id,
+        name: savedWorkspace.name,
+        role: membership.role,
+        joinedAt: membership.createdAt,
+      };
+    });
   }
 }

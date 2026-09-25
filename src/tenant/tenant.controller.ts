@@ -10,6 +10,7 @@ import {
 import { AuthGuard } from '@nestjs/passport';
 import { TenantService } from './tenant.service';
 import { AcceptInviteDto } from './dto/accept-invite.dto';
+import { CreateWorkspaceDto } from './dto/create-workspace.dto';
 @Controller('tenant')
 export class TenantController {
   constructor(private readonly tenantService: TenantService) {}
@@ -49,5 +50,11 @@ export class TenantController {
       tenantId,
       req.user.role,
     );
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Post('workspaces')
+  createWorkspace(@Req() req, @Body() body: CreateWorkspaceDto) {
+    return this.tenantService.createWorkspace(req.user.userId, body.name);
   }
 }
