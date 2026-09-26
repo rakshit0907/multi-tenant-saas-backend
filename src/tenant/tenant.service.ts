@@ -11,7 +11,7 @@ import {
   NotFoundException,
   Injectable,
 } from '@nestjs/common';
-import { randomUUID } from 'crypto';
+import { createHash, randomBytes } from 'crypto';
 import { Role } from '../common/enums/role.enum';
 import { WorkspaceMember, WorkspaceRole } from './workspace-member.entity';
 @Injectable()
@@ -33,30 +33,59 @@ export class TenantService {
     private dataSource: DataSource,
   ) {}
 
-  async createInvite(tenantId: string, email: string) {
+  async createInvite(
+    tenantId: string,
+    email: string,
+    role: WorkspaceRole = WorkspaceRole.MEMBER,
+  ) {
+    const normalizedEmail = email.trim().toLowerCase();
+
+    if (!normalizedEmail) {
+      throw new BadRequestException('Email is required');
+    }
+
+    if (role === WorkspaceRole.OWNER) {
+      throw new BadRequestException(
+        'OWNER role cannot be assigned through an invitation',
+      );
+    }
+
     const tenant = await this.tenantRepo.findOne({
       where: { id: tenantId },
     });
 
     if (!tenant) {
-      throw new NotFoundException('Tenant not found');
+      throw new NotFoundException('Workspace not found');
     }
 
     const existingUser = await this.userRepo.findOne({
-      where: { email },
+      where: { email: normalizedEmail },
     });
 
     if (existingUser) {
-      throw new BadRequestException('User already exists');
+      const existingMembership = await this.workspaceMemberRepo.findOne({
+        where: {
+          user: { id: existingUser.id },
+          tenant: { id: tenantId },
+        },
+      });
+
+      if (existingMembership) {
+        throw new BadRequestException(
+          'User is already a member of this workspace',
+        );
+      }
     }
 
-    const token = randomUUID();
+    const token = randomBytes(32).toString('hex');
+    const tokenHash = createHash('sha256').update(token).digest('hex');
 
     const invite = this.inviteRepo.create({
-      email,
-      token,
+      email: normalizedEmail,
+      tokenHash,
       tenant,
-      expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24),
+      role,
+      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
     });
 
     await this.inviteRepo.save(invite);
@@ -68,14 +97,21 @@ export class TenantService {
   }
 
   async acceptInvite(token: string, name: string, password: string) {
+    const tokenHash = createHash('sha256').update(token).digest('hex');
+
     const invite = await this.inviteRepo.findOne({
       where: {
-        token,
+        tokenHash,
       },
       relations: ['tenant'],
     });
+
     if (!invite) {
       throw new BadRequestException('Invalid invite');
+    }
+
+    if (invite.accepted) {
+      throw new BadRequestException('Invite has already been accepted');
     }
 
     if (invite.expiresAt < new Date()) {

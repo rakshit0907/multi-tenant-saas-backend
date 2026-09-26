@@ -6,6 +6,7 @@ import {
   CreateDateColumn,
 } from 'typeorm';
 import { Tenant } from '../tenant/tenant.entity';
+import { WorkspaceRole } from './workspace-member.entity';
 
 @Entity()
 export class OrganizationInvite {
@@ -16,16 +17,22 @@ export class OrganizationInvite {
   email!: string;
 
   @Column({ unique: true })
-  token!: string;
+  tokenHash!: string;
 
   @ManyToOne(() => Tenant, {
     onDelete: 'CASCADE',
+    nullable: false,
   })
   tenant!: Tenant;
 
   @Column({
-    default: false,
+    type: 'enum',
+    enum: WorkspaceRole,
+    default: WorkspaceRole.MEMBER,
   })
+  role!: WorkspaceRole;
+
+  @Column({ default: false })
   accepted!: boolean;
 
   @Column()
