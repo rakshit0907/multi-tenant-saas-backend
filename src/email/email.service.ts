@@ -88,4 +88,55 @@ export class EmailService {
       throw new Error(`Failed to send password reset email: ${error.message}`);
     }
   }
+
+  async sendWorkspaceInviteEmail(
+    email: string,
+    workspaceName: string,
+    inviteToken: string,
+  ): Promise<void> {
+    const from = this.configService.get<string>('EMAIL_FROM');
+
+    if (!from) {
+      throw new Error('EMAIL_FROM is not configured');
+    }
+
+    const backendUrl =
+      this.configService.get<string>('BACKEND_PUBLIC_URL') ??
+      'http://localhost:3000';
+
+    const inviteUrl = `${backendUrl}/auth/workspace-invite-link?token=${encodeURIComponent(
+      inviteToken,
+    )}`;
+
+    const { error } = await this.resend.emails.send({
+      from,
+      to: email,
+      subject: `You've been invited to ${workspaceName}`,
+      html: `
+      <h2>Workspace invitation</h2>
+
+      <p>
+        You've been invited to join <strong>${workspaceName}</strong> on FlowSync.
+      </p>
+
+      <p>
+        <a href="${inviteUrl}">
+          Accept Invitation
+        </a>
+      </p>
+
+      <p>This invitation expires in 24 hours.</p>
+
+      <p>
+        If you weren't expecting this invitation, you can ignore this email.
+      </p>
+    `,
+    });
+
+    if (error) {
+      throw new InternalServerErrorException(
+        'Failed to send workspace invitation email',
+      );
+    }
+  }
 }

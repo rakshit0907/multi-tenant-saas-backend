@@ -7,6 +7,7 @@ import { OrganizationInvite } from './organization-invite.entity';
 import { User } from '../users/user.entity';
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   NotFoundException,
   Injectable,
@@ -14,6 +15,8 @@ import {
 import { createHash, randomBytes } from 'crypto';
 import { Role } from '../common/enums/role.enum';
 import { WorkspaceMember, WorkspaceRole } from './workspace-member.entity';
+import { EmailService } from '../email/email.service';
+
 @Injectable()
 export class TenantService {
   constructor(
@@ -31,22 +34,46 @@ export class TenantService {
 
     private jwtService: JwtService,
     private dataSource: DataSource,
+    private emailService: EmailService,
   ) {}
 
   async createInvite(
+    userId: string,
     tenantId: string,
     email: string,
     role: WorkspaceRole = WorkspaceRole.MEMBER,
   ) {
-    const normalizedEmail = email.trim().toLowerCase();
+    const normalizedEmail = email?.trim().toLowerCase();
 
     if (!normalizedEmail) {
       throw new BadRequestException('Email is required');
     }
 
-    if (role === WorkspaceRole.OWNER) {
-      throw new BadRequestException(
-        'OWNER role cannot be assigned through an invitation',
+    if (
+      role !== WorkspaceRole.ADMIN &&
+      role !== WorkspaceRole.MEMBER &&
+      role !== WorkspaceRole.GUEST
+    ) {
+      throw new BadRequestException('Invalid invitation role');
+    }
+
+    const inviterMembership = await this.workspaceMemberRepo.findOne({
+      where: {
+        user: { id: userId },
+        tenant: { id: tenantId },
+      },
+    });
+
+    if (!inviterMembership) {
+      throw new ForbiddenException('You are not a member of this workspace');
+    }
+
+    if (
+      inviterMembership.role !== WorkspaceRole.OWNER &&
+      inviterMembership.role !== WorkspaceRole.ADMIN
+    ) {
+      throw new ForbiddenException(
+        'Only workspace owners and admins can invite members',
       );
     }
 
@@ -71,28 +98,69 @@ export class TenantService {
       });
 
       if (existingMembership) {
-        throw new BadRequestException(
+        throw new ConflictException(
           'User is already a member of this workspace',
         );
       }
     }
 
-    const token = randomBytes(32).toString('hex');
-    const tokenHash = createHash('sha256').update(token).digest('hex');
-
-    const invite = this.inviteRepo.create({
-      email: normalizedEmail,
-      tokenHash,
-      tenant,
-      role,
-      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+    const existingInvite = await this.inviteRepo.findOne({
+      where: {
+        email: normalizedEmail,
+        tenant: { id: tenantId },
+        accepted: false,
+      },
+      relations: {
+        tenant: true,
+      },
     });
 
-    await this.inviteRepo.save(invite);
+    if (existingInvite && existingInvite.expiresAt > new Date()) {
+      throw new ConflictException(
+        'An active invitation already exists for this email',
+      );
+    }
+
+    const token = randomBytes(32).toString('hex');
+    const tokenHash = createHash('sha256').update(token).digest('hex');
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+    let invite: OrganizationInvite;
+
+    if (existingInvite) {
+      existingInvite.tokenHash = tokenHash;
+      existingInvite.role = role;
+      existingInvite.expiresAt = expiresAt;
+
+      invite = existingInvite;
+    } else {
+      invite = this.inviteRepo.create({
+        email: normalizedEmail,
+        tokenHash,
+        tenant,
+        role,
+        expiresAt,
+      });
+    }
+
+    const savedInvite = await this.inviteRepo.save(invite);
+
+    try {
+      await this.emailService.sendWorkspaceInviteEmail(
+        normalizedEmail,
+        tenant.name,
+        token,
+      );
+    } catch (error) {
+      if (!existingInvite) {
+        await this.inviteRepo.delete(savedInvite.id);
+      }
+
+      throw error;
+    }
 
     return {
-      message: 'Invite created',
-      token,
+      message: 'Workspace invitation sent successfully',
     };
   }
 
