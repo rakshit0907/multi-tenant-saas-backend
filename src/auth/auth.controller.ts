@@ -7,6 +7,10 @@ import { ResendVerificationDto } from './dto/resend-verification.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import type { Response } from 'express';
+import { Req, UseGuards } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
+import { AcceptInviteDto } from '../tenant/dto/accept-invite.dto';
+import { AcceptExistingInviteDto } from './dto/accept-existing-invite.dto';
 @Controller('auth')
 export class AuthController {
   constructor(private authService: AuthService) {}
@@ -40,9 +44,39 @@ export class AuthController {
     return this.authService.resetPassword(dto.token, dto.newPassword);
   }
 
+  @Post('accept-invite')
+  acceptInviteForNewUser(@Body() body: AcceptInviteDto) {
+    return this.authService.acceptInviteForNewUser(
+      body.token,
+      body.name,
+      body.password,
+    );
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Post('accept-invite-existing')
+  acceptInviteForExistingUser(
+    @Body() body: AcceptExistingInviteDto,
+    @Req() req,
+  ) {
+    return this.authService.acceptInviteForExistingUser(
+      req.user.userId,
+      body.token,
+    );
+  }
+
   @Get('reset-password-link')
   resetPasswordLink(@Query('token') token: string, @Res() res: Response) {
     const appUrl = `multisaas://reset-password?token=${encodeURIComponent(token)}`;
+
+    return res.redirect(appUrl);
+  }
+
+  @Get('workspace-invite-link')
+  workspaceInviteLink(@Query('token') token: string, @Res() res: Response) {
+    const appUrl = `multisaas://workspace-invite?token=${encodeURIComponent(
+      token,
+    )}`;
 
     return res.redirect(appUrl);
   }

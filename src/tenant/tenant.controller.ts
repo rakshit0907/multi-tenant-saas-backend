@@ -9,7 +9,6 @@ import {
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { TenantService } from './tenant.service';
-import { AcceptInviteDto } from './dto/accept-invite.dto';
 import { CreateWorkspaceDto } from './dto/create-workspace.dto';
 import { CreateWorkspaceInviteDto } from './dto/create-workspace-invite.dto';
 @Controller('tenant')
@@ -24,15 +23,6 @@ export class TenantController {
       req.user.tenantId,
       body.email,
       body.role,
-    );
-  }
-
-  @Post('accept-invite')
-  acceptInvite(@Body() body: AcceptInviteDto) {
-    return this.tenantService.acceptInvite(
-      body.token,
-      body.name,
-      body.password,
     );
   }
 

@@ -164,72 +164,6 @@ export class TenantService {
     };
   }
 
-  async acceptInvite(token: string, name: string, password: string) {
-    const tokenHash = createHash('sha256').update(token).digest('hex');
-
-    const invite = await this.inviteRepo.findOne({
-      where: {
-        tokenHash,
-      },
-      relations: ['tenant'],
-    });
-
-    if (!invite) {
-      throw new BadRequestException('Invalid invite');
-    }
-
-    if (invite.accepted) {
-      throw new BadRequestException('Invite has already been accepted');
-    }
-
-    if (invite.expiresAt < new Date()) {
-      throw new BadRequestException('Invite expired');
-    }
-
-    const existingUser = await this.userRepo.findOne({
-      where: {
-        email: invite.email,
-      },
-    });
-
-    if (existingUser) {
-      throw new BadRequestException('User already exists');
-    }
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    const user = this.userRepo.create({
-      name,
-      email: invite.email,
-      password: hashedPassword,
-      role: Role.USER,
-      tenant: invite.tenant,
-    });
-
-    const savedUser = await this.userRepo.save(user);
-
-    invite.accepted = true;
-    await this.inviteRepo.save(invite);
-
-    const payload = {
-      userId: savedUser.id,
-      tenantId: invite.tenant.id,
-      role: savedUser.role,
-    };
-
-    const access_token = this.jwtService.sign(payload);
-
-    return {
-      access_token,
-      user: {
-        id: savedUser.id,
-        name: savedUser.name,
-        email: savedUser.email,
-        tenantId: invite.tenant.id,
-      },
-    };
-  }
-
   async create(data: { name: string }) {
     if (!data.name) {
       throw new BadRequestException('Tenant name is required');
@@ -390,5 +324,245 @@ export class TenantService {
         joinedAt: membership.createdAt,
       };
     });
+  }
+
+  async acceptInviteForExistingUser(userId: string, token: string) {
+    if (!token?.trim()) {
+      throw new BadRequestException('Invitation token is required');
+    }
+
+    const tokenHash = createHash('sha256').update(token).digest('hex');
+
+    const result = await this.dataSource.transaction(async (manager) => {
+      const inviteRepo = manager.getRepository(OrganizationInvite);
+      const userRepo = manager.getRepository(User);
+      const workspaceMemberRepo = manager.getRepository(WorkspaceMember);
+
+      const invite = await inviteRepo.findOne({
+        where: { tokenHash },
+        relations: {
+          tenant: true,
+        },
+        lock: {
+          mode: 'pessimistic_write',
+        },
+      });
+
+      if (!invite) {
+        throw new BadRequestException('Invalid invitation');
+      }
+
+      if (invite.accepted) {
+        throw new BadRequestException('Invitation has already been accepted');
+      }
+
+      if (invite.expiresAt.getTime() < Date.now()) {
+        throw new BadRequestException('Invitation has expired');
+      }
+
+      const user = await userRepo.findOne({
+        where: { id: userId },
+      });
+
+      if (!user) {
+        throw new NotFoundException('User not found');
+      }
+
+      const userEmail = user.email.trim().toLowerCase();
+      const inviteEmail = invite.email.trim().toLowerCase();
+
+      if (userEmail !== inviteEmail) {
+        throw new ForbiddenException(
+          'This invitation belongs to a different email address',
+        );
+      }
+
+      const existingMembership = await workspaceMemberRepo.findOne({
+        where: {
+          tenant: { id: invite.tenant.id },
+          user: { id: user.id },
+        },
+      });
+
+      if (existingMembership) {
+        throw new ConflictException(
+          'User is already a member of this workspace',
+        );
+      }
+
+      if (invite.role === WorkspaceRole.OWNER) {
+        throw new BadRequestException(
+          'OWNER role cannot be assigned through an invitation',
+        );
+      }
+
+      const membership = workspaceMemberRepo.create({
+        tenant: invite.tenant,
+        user,
+        role: invite.role,
+      });
+
+      await workspaceMemberRepo.save(membership);
+
+      invite.accepted = true;
+      await inviteRepo.save(invite);
+
+      return {
+        userId: user.id,
+        globalRole: user.role,
+        workspace: {
+          id: invite.tenant.id,
+          name: invite.tenant.name,
+          role: membership.role,
+        },
+      };
+    });
+
+    const payload = {
+      userId: result.userId,
+      tenantId: result.workspace.id,
+      role: result.globalRole,
+      workspaceRole: result.workspace.role,
+    };
+
+    const tokenForWorkspace = this.jwtService.sign(payload);
+
+    return {
+      message: 'Workspace invitation accepted successfully',
+      token: tokenForWorkspace,
+      workspace: result.workspace,
+    };
+  }
+
+  async acceptInviteForNewUser(token: string, name: string, password: string) {
+    const normalizedName = name?.trim();
+
+    if (!token?.trim()) {
+      throw new BadRequestException('Invitation token is required');
+    }
+
+    if (!normalizedName || !password) {
+      throw new BadRequestException('Name and password are required');
+    }
+
+    const tokenHash = createHash('sha256').update(token).digest('hex');
+
+    const verificationToken = randomBytes(32).toString('hex');
+    const verificationTokenHash = createHash('sha256')
+      .update(verificationToken)
+      .digest('hex');
+
+    const verificationExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const result = await this.dataSource.transaction(async (manager) => {
+      const inviteRepo = manager.getRepository(OrganizationInvite);
+      const userRepo = manager.getRepository(User);
+      const workspaceMemberRepo = manager.getRepository(WorkspaceMember);
+
+      const invite = await inviteRepo.findOne({
+        where: { tokenHash },
+        relations: {
+          tenant: true,
+        },
+        lock: {
+          mode: 'pessimistic_write',
+        },
+      });
+
+      if (!invite) {
+        throw new BadRequestException('Invalid invitation');
+      }
+
+      if (invite.accepted) {
+        throw new BadRequestException('Invitation has already been accepted');
+      }
+
+      if (invite.expiresAt.getTime() < Date.now()) {
+        throw new BadRequestException('Invitation has expired');
+      }
+
+      if (invite.role === WorkspaceRole.OWNER) {
+        throw new BadRequestException(
+          'OWNER role cannot be assigned through an invitation',
+        );
+      }
+
+      const normalizedEmail = invite.email.trim().toLowerCase();
+
+      const existingUser = await userRepo.findOne({
+        where: {
+          email: normalizedEmail,
+        },
+      });
+
+      if (existingUser) {
+        throw new ConflictException(
+          'An account already exists for this email. Please sign in to accept the invitation.',
+        );
+      }
+
+      const user = userRepo.create({
+        name: normalizedName,
+        email: normalizedEmail,
+        password: hashedPassword,
+
+        // Temporary legacy compatibility.
+        tenant: invite.tenant,
+
+        role: Role.USER,
+
+        isEmailVerified: false,
+        emailVerificationToken: verificationTokenHash,
+        emailVerificationExpiresAt: verificationExpiresAt,
+      });
+
+      const savedUser = await userRepo.save(user);
+
+      const membership = workspaceMemberRepo.create({
+        tenant: invite.tenant,
+        user: savedUser,
+        role: invite.role,
+      });
+
+      await workspaceMemberRepo.save(membership);
+
+      invite.accepted = true;
+      await inviteRepo.save(invite);
+
+      return {
+        user: {
+          id: savedUser.id,
+          name: savedUser.name,
+          email: savedUser.email,
+        },
+        workspace: {
+          id: invite.tenant.id,
+          name: invite.tenant.name,
+          role: membership.role,
+        },
+      };
+    });
+
+    try {
+      await this.emailService.sendVerificationEmail(
+        result.user.email,
+        result.user.name,
+        verificationToken,
+      );
+    } catch (error) {
+      console.error(
+        'Failed to send verification email after invite acceptance:',
+        error,
+      );
+    }
+
+    return {
+      message:
+        'Account created and workspace invitation accepted. Please verify your email before logging in.',
+      user: result.user,
+      workspace: result.workspace,
+    };
   }
 }

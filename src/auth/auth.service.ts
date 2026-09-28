@@ -331,4 +331,12 @@ export class AuthService {
       message: 'Password reset successfully',
     };
   }
+
+  async acceptInviteForNewUser(token: string, name: string, password: string) {
+    return this.tenantService.acceptInviteForNewUser(token, name, password);
+  }
+
+  async acceptInviteForExistingUser(userId: string, token: string) {
+    return this.tenantService.acceptInviteForExistingUser(userId, token);
+  }
 }
