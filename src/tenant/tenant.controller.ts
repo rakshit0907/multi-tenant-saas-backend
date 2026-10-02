@@ -6,11 +6,15 @@ import {
   UseGuards,
   Get,
   Param,
+  Patch,
+  Delete,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { TenantService } from './tenant.service';
 import { CreateWorkspaceDto } from './dto/create-workspace.dto';
 import { CreateWorkspaceInviteDto } from './dto/create-workspace-invite.dto';
+import { UpdateWorkspaceMemberRoleDto } from './dto/update-workspace-member-role.dto';
+
 @Controller('tenant')
 export class TenantController {
   constructor(private readonly tenantService: TenantService) {}
@@ -30,6 +34,31 @@ export class TenantController {
   @Get('users')
   getOrganizationUsers(@Req() req) {
     return this.tenantService.getOrganizationUsers(req.user.tenantId);
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Patch('members/:userId/role')
+  updateWorkspaceMemberRole(
+    @Param('userId') targetUserId: string,
+    @Body() body: UpdateWorkspaceMemberRoleDto,
+    @Req() req,
+  ) {
+    return this.tenantService.updateWorkspaceMemberRole(
+      req.user.userId,
+      req.user.tenantId,
+      targetUserId,
+      body.role,
+    );
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Delete('members/:userId')
+  removeWorkspaceMember(@Param('userId') targetUserId: string, @Req() req) {
+    return this.tenantService.removeWorkspaceMember(
+      req.user.userId,
+      req.user.tenantId,
+      targetUserId,
+    );
   }
 
   @UseGuards(AuthGuard('jwt'))

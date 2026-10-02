@@ -176,29 +176,217 @@ export class TenantService {
     return await this.tenantRepo.save(tenant);
   }
 
- async getOrganizationUsers(tenantId: string) {
-  const memberships = await this.workspaceMemberRepo.find({
-    where: {
-      tenant: {
-        id: tenantId,
+  async getOrganizationUsers(tenantId: string) {
+    const memberships = await this.workspaceMemberRepo.find({
+      where: {
+        tenant: {
+          id: tenantId,
+        },
       },
-    },
-    relations: {
-      user: true,
-    },
-    order: {
-      createdAt: 'ASC',
-    },
-  });
+      relations: {
+        user: true,
+      },
+      order: {
+        createdAt: 'ASC',
+      },
+    });
 
-  return memberships.map((membership) => ({
-    id: membership.user.id,
-    name: membership.user.name,
-    email: membership.user.email,
-    role: membership.role,
-    joinedAt: membership.createdAt,
-  }));
-}
+    return memberships.map((membership) => ({
+      id: membership.user.id,
+      name: membership.user.name,
+      email: membership.user.email,
+      role: membership.role,
+      joinedAt: membership.createdAt,
+    }));
+  }
+
+  async updateWorkspaceMemberRole(
+    requestingUserId: string,
+    tenantId: string,
+    targetUserId: string,
+    newRole: WorkspaceRole,
+  ) {
+    if (newRole === WorkspaceRole.OWNER) {
+      throw new BadRequestException(
+        'OWNER role cannot be assigned through this endpoint',
+      );
+    }
+
+    if (
+      newRole !== WorkspaceRole.ADMIN &&
+      newRole !== WorkspaceRole.MEMBER &&
+      newRole !== WorkspaceRole.GUEST
+    ) {
+      throw new BadRequestException('Invalid workspace role');
+    }
+
+    const requesterMembership = await this.workspaceMemberRepo.findOne({
+      where: {
+        tenant: {
+          id: tenantId,
+        },
+        user: {
+          id: requestingUserId,
+        },
+      },
+    });
+
+    if (!requesterMembership) {
+      throw new ForbiddenException('You are not a member of this workspace');
+    }
+
+    if (
+      requesterMembership.role !== WorkspaceRole.OWNER &&
+      requesterMembership.role !== WorkspaceRole.ADMIN
+    ) {
+      throw new ForbiddenException(
+        'Only workspace owners and admins can change member roles',
+      );
+    }
+
+    if (requestingUserId === targetUserId) {
+      throw new BadRequestException(
+        'You cannot change your own workspace role',
+      );
+    }
+
+    const targetMembership = await this.workspaceMemberRepo.findOne({
+      where: {
+        tenant: {
+          id: tenantId,
+        },
+        user: {
+          id: targetUserId,
+        },
+      },
+      relations: {
+        user: true,
+      },
+    });
+
+    if (!targetMembership) {
+      throw new NotFoundException('Workspace member not found');
+    }
+
+    if (targetMembership.role === WorkspaceRole.OWNER) {
+      throw new ForbiddenException(
+        'The workspace owner role cannot be changed',
+      );
+    }
+
+    if (
+      requesterMembership.role === WorkspaceRole.ADMIN &&
+      targetMembership.role === WorkspaceRole.ADMIN
+    ) {
+      throw new ForbiddenException('Admins cannot change another admin role');
+    }
+
+    if (
+      requesterMembership.role === WorkspaceRole.ADMIN &&
+      newRole === WorkspaceRole.ADMIN
+    ) {
+      throw new ForbiddenException('Admins cannot promote members to admin');
+    }
+
+    if (targetMembership.role === newRole) {
+      return {
+        id: targetMembership.user.id,
+        name: targetMembership.user.name,
+        email: targetMembership.user.email,
+        role: targetMembership.role,
+        joinedAt: targetMembership.createdAt,
+      };
+    }
+
+    targetMembership.role = newRole;
+
+    const updatedMembership =
+      await this.workspaceMemberRepo.save(targetMembership);
+
+    return {
+      id: updatedMembership.user.id,
+      name: updatedMembership.user.name,
+      email: updatedMembership.user.email,
+      role: updatedMembership.role,
+      joinedAt: updatedMembership.createdAt,
+    };
+  }
+
+  async removeWorkspaceMember(
+    requestingUserId: string,
+    tenantId: string,
+    targetUserId: string,
+  ) {
+    const requesterMembership = await this.workspaceMemberRepo.findOne({
+      where: {
+        tenant: {
+          id: tenantId,
+        },
+        user: {
+          id: requestingUserId,
+        },
+      },
+    });
+
+    if (!requesterMembership) {
+      throw new ForbiddenException('You are not a member of this workspace');
+    }
+
+    if (
+      requesterMembership.role !== WorkspaceRole.OWNER &&
+      requesterMembership.role !== WorkspaceRole.ADMIN
+    ) {
+      throw new ForbiddenException(
+        'Only workspace owners and admins can remove members',
+      );
+    }
+
+    if (requestingUserId === targetUserId) {
+      throw new BadRequestException(
+        'You cannot remove yourself from the workspace',
+      );
+    }
+
+    const targetMembership = await this.workspaceMemberRepo.findOne({
+      where: {
+        tenant: {
+          id: tenantId,
+        },
+        user: {
+          id: targetUserId,
+        },
+      },
+      relations: {
+        user: true,
+      },
+    });
+
+    if (!targetMembership) {
+      throw new NotFoundException('Workspace member not found');
+    }
+
+    if (targetMembership.role === WorkspaceRole.OWNER) {
+      throw new ForbiddenException('The workspace owner cannot be removed');
+    }
+
+    if (
+      requesterMembership.role === WorkspaceRole.ADMIN &&
+      targetMembership.role === WorkspaceRole.ADMIN
+    ) {
+      throw new ForbiddenException('Admins cannot remove another admin');
+    }
+
+    await this.workspaceMemberRepo.remove(targetMembership);
+
+    return {
+      message: 'Workspace member removed successfully',
+      user: {
+        id: targetMembership.user.id,
+        name: targetMembership.user.name,
+        email: targetMembership.user.email,
+      },
+    };
+  }
 
   async getUserWorkspaces(userId: string) {
     const memberships = await this.workspaceMemberRepo.find({
