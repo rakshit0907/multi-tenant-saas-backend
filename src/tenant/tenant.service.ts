@@ -519,6 +519,61 @@ export class TenantService {
     });
   }
 
+  async updateWorkspace(userId: string, tenantId: string, name: string) {
+    const workspaceName = name?.trim();
+
+    if (!workspaceName) {
+      throw new BadRequestException('Workspace name is required');
+    }
+
+    const membership = await this.workspaceMemberRepo.findOne({
+      where: {
+        user: {
+          id: userId,
+        },
+        tenant: {
+          id: tenantId,
+        },
+      },
+    });
+
+    if (!membership) {
+      throw new ForbiddenException('You are not a member of this workspace');
+    }
+
+    if (membership.role !== WorkspaceRole.OWNER) {
+      throw new ForbiddenException(
+        'Only the workspace owner can rename this workspace',
+      );
+    }
+
+    const workspace = await this.tenantRepo.findOne({
+      where: {
+        id: tenantId,
+      },
+    });
+
+    if (!workspace) {
+      throw new NotFoundException('Workspace not found');
+    }
+
+    if (workspace.name === workspaceName) {
+      return {
+        id: workspace.id,
+        name: workspace.name,
+      };
+    }
+
+    workspace.name = workspaceName;
+
+    const updatedWorkspace = await this.tenantRepo.save(workspace);
+
+    return {
+      id: updatedWorkspace.id,
+      name: updatedWorkspace.name,
+    };
+  }
+
   async acceptInviteForExistingUser(userId: string, token: string) {
     if (!token?.trim()) {
       throw new BadRequestException('Invitation token is required');

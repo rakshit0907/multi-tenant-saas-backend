@@ -14,6 +14,7 @@ import { TenantService } from './tenant.service';
 import { CreateWorkspaceDto } from './dto/create-workspace.dto';
 import { CreateWorkspaceInviteDto } from './dto/create-workspace-invite.dto';
 import { UpdateWorkspaceMemberRoleDto } from './dto/update-workspace-member-role.dto';
+import { UpdateWorkspaceDto } from './dto/update-workspace.dto';
 
 @Controller('tenant')
 export class TenantController {
@@ -81,5 +82,15 @@ export class TenantController {
   @Post('workspaces')
   createWorkspace(@Req() req, @Body() body: CreateWorkspaceDto) {
     return this.tenantService.createWorkspace(req.user.userId, body.name);
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Patch('workspace')
+  updateWorkspace(@Req() req, @Body() body: UpdateWorkspaceDto) {
+    return this.tenantService.updateWorkspace(
+      req.user.userId,
+      req.user.tenantId,
+      body.name,
+    );
   }
 }
