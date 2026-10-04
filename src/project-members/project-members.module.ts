@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-
+import { WorkspaceMember } from '../tenant/workspace-member.entity';
 import { ProjectMember } from './project-member.entity';
 import { ProjectMembersService } from './project-members.service';
 import { ProjectMembersController } from './project-members.controller';
@@ -10,7 +10,7 @@ import { Project } from '../project/project.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([ProjectMember, User, Project]),
+    TypeOrmModule.forFeature([ProjectMember, User, Project, WorkspaceMember]),
     ActivityModule,
   ],
   controllers: [ProjectMembersController],

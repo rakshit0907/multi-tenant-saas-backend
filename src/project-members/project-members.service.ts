@@ -12,6 +12,8 @@ import { Project } from '../project/project.entity';
 import { User } from '../users/user.entity';
 import { ActivityService } from '../activity/activity.service';
 import { ActivityAction } from '../activity/activity.entity';
+import { WorkspaceMember } from '../tenant/workspace-member.entity';
+
 @Injectable()
 export class ProjectMembersService {
   constructor(
@@ -24,13 +26,24 @@ export class ProjectMembersService {
     @InjectRepository(User)
     private userRepo: Repository<User>,
 
+    @InjectRepository(WorkspaceMember)
+    private workspaceMemberRepo: Repository<WorkspaceMember>,
+
     private activityService: ActivityService,
   ) {}
 
-  async addMember(projectId: string, userId: string, requesterId: string) {
+  async addMember(
+    projectId: string,
+    userId: string,
+    requesterId: string,
+    tenantId: string,
+  ) {
     const project = await this.projectRepo.findOne({
       where: {
         id: projectId,
+        tenant: {
+          id: tenantId,
+        },
       },
       relations: ['tenant'],
     });
@@ -39,21 +52,31 @@ export class ProjectMembersService {
       throw new NotFoundException('Project not found');
     }
 
-    await this.verifyOwner(projectId, requesterId);
+    await this.verifyOwner(projectId, requesterId, tenantId);
 
     const user = await this.userRepo.findOne({
       where: {
         id: userId,
       },
-      relations: ['tenant'],
     });
 
     if (!user) {
       throw new NotFoundException('User not found');
     }
 
-    if (user.tenant.id !== project.tenant.id) {
-      throw new ForbiddenException('User belongs to another organization');
+    const workspaceMembership = await this.workspaceMemberRepo.findOne({
+      where: {
+        user: {
+          id: userId,
+        },
+        tenant: {
+          id: tenantId,
+        },
+      },
+    });
+
+    if (!workspaceMembership) {
+      throw new ForbiddenException('User is not a member of this workspace');
     }
 
     const existingMember = await this.memberRepo.findOne({
@@ -94,7 +117,7 @@ export class ProjectMembersService {
     return savedMember;
   }
 
-  async getMembers(projectId: string, tenantId: string) {
+  async getMembers(projectId: string, tenantId: string, requesterId: string) {
     const project = await this.projectRepo.findOne({
       where: {
         id: projectId,
@@ -108,6 +131,21 @@ export class ProjectMembersService {
       throw new NotFoundException('Project not found');
     }
 
+    const requesterMembership = await this.memberRepo.findOne({
+      where: {
+        project: {
+          id: projectId,
+        },
+        user: {
+          id: requesterId,
+        },
+      },
+    });
+
+    if (!requesterMembership) {
+      throw new ForbiddenException('You are not a member of this project');
+    }
+
     return this.memberRepo.find({
       where: {
         project: {
@@ -118,14 +156,27 @@ export class ProjectMembersService {
     });
   }
 
-  async removeMember(projectId: string, userId: string, requesterId: string) {
-    await this.verifyOwner(projectId, requesterId);
+  async removeMember(
+    projectId: string,
+    userId: string,
+    requesterId: string,
+    tenantId: string,
+  ) {
+    await this.verifyOwner(projectId, requesterId, tenantId);
+
     const member = await this.memberRepo.findOne({
       where: {
-        project: { id: projectId },
-        user: { id: userId },
+        project: {
+          id: projectId,
+          tenant: {
+            id: tenantId,
+          },
+        },
+        user: {
+          id: userId,
+        },
       },
-      relations: ['project', 'user'],
+      relations: ['project', 'project.tenant', 'user'],
     });
 
     if (!member) {
@@ -148,6 +199,7 @@ export class ProjectMembersService {
     );
 
     await this.memberRepo.remove(member);
+
     return {
       message: 'Member removed successfully',
     };
@@ -158,19 +210,23 @@ export class ProjectMembersService {
     userId: string,
     role: ProjectRole,
     requesterId: string,
+    tenantId: string,
   ) {
-    await this.verifyOwner(projectId, requesterId);
+    await this.verifyOwner(projectId, requesterId, tenantId);
 
     const member = await this.memberRepo.findOne({
       where: {
         project: {
           id: projectId,
+          tenant: {
+            id: tenantId,
+          },
         },
         user: {
           id: userId,
         },
       },
-      relations: ['project', 'user'],
+      relations: ['project', 'project.tenant', 'user'],
     });
 
     if (!member) {
@@ -186,7 +242,9 @@ export class ProjectMembersService {
         'Cannot assign OWNER role through this endpoint',
       );
     }
+
     const oldRole = member.role;
+
     member.role = role;
 
     const savedMember = await this.memberRepo.save(member);
@@ -207,11 +265,18 @@ export class ProjectMembersService {
     return savedMember;
   }
 
-  async getMyRole(projectId: string, userId: string) {
+  async getMyRole(projectId: string, userId: string, tenantId: string) {
     const member = await this.memberRepo.findOne({
       where: {
-        project: { id: projectId },
-        user: { id: userId },
+        project: {
+          id: projectId,
+          tenant: {
+            id: tenantId,
+          },
+        },
+        user: {
+          id: userId,
+        },
       },
     });
 
@@ -224,11 +289,22 @@ export class ProjectMembersService {
     };
   }
 
-  private async verifyOwner(projectId: string, userId: string) {
+  private async verifyOwner(
+    projectId: string,
+    userId: string,
+    tenantId: string,
+  ) {
     const membership = await this.memberRepo.findOne({
       where: {
-        project: { id: projectId },
-        user: { id: userId },
+        project: {
+          id: projectId,
+          tenant: {
+            id: tenantId,
+          },
+        },
+        user: {
+          id: userId,
+        },
       },
     });
 

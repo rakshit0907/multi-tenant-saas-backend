@@ -26,30 +26,42 @@ export class ProjectMembersController {
       projectId,
       body.userId,
       req.user.userId,
+      req.user.tenantId,
     );
   }
 
   @UseGuards(AuthGuard('jwt'))
   @Get(':projectId/my-role')
   getMyRole(@Param('projectId') projectId: string, @Req() req) {
-    return this.projectMembersService.getMyRole(projectId, req.user.userId);
+    return this.projectMembersService.getMyRole(
+      projectId,
+      req.user.userId,
+      req.user.tenantId,
+    );
   }
+
   @UseGuards(AuthGuard('jwt'))
   @Get(':projectId/members')
-  getMembers(@Param('projectId') projectId: string, @Req() req: any) {
-    return this.projectMembersService.getMembers(projectId, req.user.tenantId);
+  getMembers(@Param('projectId') projectId: string, @Req() req) {
+    return this.projectMembersService.getMembers(
+      projectId,
+      req.user.tenantId,
+      req.user.userId,
+    );
   }
+
   @UseGuards(AuthGuard('jwt'))
   @Delete(':projectId/members/:userId')
   removeMember(
     @Param('projectId') projectId: string,
     @Param('userId') userId: string,
-    @Req() req: any,
+    @Req() req,
   ) {
     return this.projectMembersService.removeMember(
       projectId,
       userId,
       req.user.userId,
+      req.user.tenantId,
     );
   }
 
@@ -59,13 +71,14 @@ export class ProjectMembersController {
     @Param('projectId') projectId: string,
     @Param('userId') userId: string,
     @Body() body: UpdateMemberRoleDto,
-    @Req() req: any,
+    @Req() req,
   ) {
     return this.projectMembersService.updateRole(
       projectId,
       userId,
       body.role,
       req.user.userId,
+      req.user.tenantId,
     );
   }
 }
