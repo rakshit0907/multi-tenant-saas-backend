@@ -57,14 +57,18 @@ export class TasksService {
     });
 
     if (!task) {
-      return null;
+      throw new NotFoundException('Task not found');
     }
 
     if (!userId) {
       throw new ForbiddenException('Authenticated user is required');
     }
 
-    const membership = await this.getMembership(task.project.id, userId);
+    const membership = await this.getMembership(
+      task.project.id,
+      userId,
+      tenantId,
+    );
 
     if (membership.role !== ProjectRole.OWNER && task.assignee?.id !== userId) {
       throw new ForbiddenException(
@@ -119,7 +123,7 @@ export class TasksService {
       throw new ForbiddenException('Authenticated user is required');
     }
 
-    await this.getMembership(task.project.id, userId);
+    await this.getMembership(task.project.id, userId, tenantId);
 
     return task;
   }
@@ -207,7 +211,7 @@ export class TasksService {
       throw new ForbiddenException('Authenticated user is required');
     }
 
-    await this.verifyOwner(projectId, createdById);
+    await this.verifyOwner(projectId, createdById, tenantId);
 
     let assignee: User | null = null;
 
@@ -357,7 +361,7 @@ export class TasksService {
       throw new ForbiddenException('Authenticated user is required');
     }
 
-    await this.getMembership(projectId, userId);
+    await this.getMembership(projectId, userId, tenantId);
 
     const query = this.repo
       .createQueryBuilder('task')
@@ -455,14 +459,14 @@ export class TasksService {
     });
 
     if (!task) {
-      return null;
+      throw new NotFoundException('Task not found');
     }
 
     if (!userId) {
       throw new ForbiddenException('Authenticated user is required');
     }
 
-    await this.verifyOwner(task.project.id, userId);
+    await this.verifyOwner(task.project.id, userId, tenantId);
 
     const oldPriority = task.priority;
     const oldStatus = task.status;
@@ -676,14 +680,18 @@ export class TasksService {
     });
 
     if (!task) {
-      return null;
+      throw new NotFoundException('Task not found');
     }
 
     if (!userId) {
       throw new ForbiddenException('Authenticated user is required');
     }
 
-    const membership = await this.getMembership(task.project.id, userId);
+    const membership = await this.getMembership(
+      task.project.id,
+      userId,
+      tenantId,
+    );
 
     if (membership.role !== ProjectRole.OWNER && task.assignee?.id !== userId) {
       throw new ForbiddenException('You can only update tasks assigned to you');
@@ -737,14 +745,14 @@ export class TasksService {
     });
 
     if (!task) {
-      return null;
+      throw new NotFoundException('Task not found');
     }
 
     if (!userId) {
       throw new ForbiddenException('Authenticated user is required');
     }
 
-    await this.verifyOwner(task.project.id, userId);
+    await this.verifyOwner(task.project.id, userId, tenantId);
 
     const user = await this.userRepo.findOne({
       where: {
@@ -769,11 +777,18 @@ export class TasksService {
     return this.repo.remove(task);
   }
 
-  private async getMembership(projectId: string, userId: string) {
+  private async getMembership(
+    projectId: string,
+    userId: string,
+    tenantId: string,
+  ) {
     const membership = await this.memberRepo.findOne({
       where: {
         project: {
           id: projectId,
+          tenant: {
+            id: tenantId,
+          },
         },
         user: {
           id: userId,
@@ -788,8 +803,12 @@ export class TasksService {
     return membership;
   }
 
-  private async verifyOwner(projectId: string, userId: string) {
-    const membership = await this.getMembership(projectId, userId);
+  private async verifyOwner(
+    projectId: string,
+    userId: string,
+    tenantId: string,
+  ) {
+    const membership = await this.getMembership(projectId, userId, tenantId);
 
     if (membership.role !== ProjectRole.OWNER) {
       throw new ForbiddenException(

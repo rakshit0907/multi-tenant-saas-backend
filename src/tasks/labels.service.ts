@@ -45,11 +45,18 @@ export class LabelsService {
     return project;
   }
 
-  private async getMembership(projectId: string, userId: string) {
+  private async getMembership(
+    projectId: string,
+    userId: string,
+    tenantId: string,
+  ) {
     const membership = await this.memberRepo.findOne({
       where: {
         project: {
           id: projectId,
+          tenant: {
+            id: tenantId,
+          },
         },
         user: {
           id: userId,
@@ -64,8 +71,12 @@ export class LabelsService {
     return membership;
   }
 
-  private async verifyOwner(projectId: string, userId: string) {
-    const membership = await this.getMembership(projectId, userId);
+  private async verifyOwner(
+    projectId: string,
+    userId: string,
+    tenantId: string,
+  ) {
+    const membership = await this.getMembership(projectId, userId, tenantId);
 
     if (membership.role !== ProjectRole.OWNER) {
       throw new ForbiddenException('Only project owners can manage labels');
@@ -100,7 +111,7 @@ export class LabelsService {
   ) {
     await this.getProject(projectId, tenantId);
 
-    await this.verifyOwner(projectId, userId);
+    await this.verifyOwner(projectId, userId, tenantId);
 
     const label = await this.getLabel(labelId, projectId);
 
@@ -146,7 +157,7 @@ export class LabelsService {
   ) {
     await this.getProject(projectId, tenantId);
 
-    await this.verifyOwner(projectId, userId);
+    await this.verifyOwner(projectId, userId, tenantId);
 
     const label = await this.getLabel(labelId, projectId);
 
@@ -166,7 +177,7 @@ export class LabelsService {
   ) {
     const project = await this.getProject(projectId, tenantId);
 
-    await this.verifyOwner(projectId, userId);
+    await this.verifyOwner(projectId, userId, tenantId);
 
     const cleanName = name.trim();
 
@@ -200,7 +211,7 @@ export class LabelsService {
   async getLabels(projectId: string, tenantId: string, userId: string) {
     await this.getProject(projectId, tenantId);
 
-    await this.getMembership(projectId, userId);
+    await this.getMembership(projectId, userId, tenantId);
 
     return this.labelRepo.find({
       where: {

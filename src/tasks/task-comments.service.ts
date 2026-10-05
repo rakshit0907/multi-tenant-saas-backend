@@ -54,6 +54,9 @@ export class TaskCommentsService {
       where: {
         project: {
           id: task.project.id,
+          tenant: {
+            id: tenantId,
+          },
         },
         user: {
           id: userId,
@@ -147,6 +150,9 @@ export class TaskCommentsService {
       where: {
         project: {
           id: comment.task.project.id,
+          tenant: {
+            id: tenantId,
+          },
         },
         user: {
           id: userId,

@@ -53,6 +53,9 @@ export class TaskAttachmentsService {
       where: {
         project: {
           id: task.project.id,
+          tenant: {
+            id: tenantId,
+          },
         },
         user: {
           id: userId,
@@ -163,13 +166,15 @@ export class TaskAttachmentsService {
       where: {
         project: {
           id: attachment.task.project.id,
+          tenant: {
+            id: tenantId,
+          },
         },
         user: {
           id: userId,
         },
       },
     });
-
     if (!membership) {
       throw new ForbiddenException('You are not a member of this project');
     }
@@ -188,6 +193,9 @@ export class TaskAttachmentsService {
       where: {
         project: {
           id: attachment.task.project.id,
+          tenant: {
+            id: tenantId,
+          },
         },
         user: {
           id: userId,
