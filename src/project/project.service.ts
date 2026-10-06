@@ -383,6 +383,7 @@ export class ProjectService {
     const recentActivity = await this.activityService.getProjectActivity(
       projectId,
       tenantId,
+      userId,
       10,
     );
 

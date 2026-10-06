@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 
 import { Notification, NotificationType } from './notification.entity';
 
@@ -35,11 +35,16 @@ export class NotificationService {
     return this.notificationRepo.save(notification);
   }
 
-  async getMyNotifications(userId: string, limit = 20) {
+  async getMyNotifications(userId: string, tenantId: string, limit = 20) {
     return this.notificationRepo.find({
       where: {
         user: {
           id: userId,
+        },
+        project: {
+          tenant: {
+            id: tenantId,
+          },
         },
       },
       relations: ['project'],
@@ -50,11 +55,16 @@ export class NotificationService {
     });
   }
 
-  async getUnread(userId: string) {
+  async getUnread(userId: string, tenantId: string) {
     return this.notificationRepo.find({
       where: {
         user: {
           id: userId,
+        },
+        project: {
+          tenant: {
+            id: tenantId,
+          },
         },
         isRead: false,
       },
@@ -64,30 +74,39 @@ export class NotificationService {
       },
     });
   }
-
-  async getUnreadCount(userId: string) {
+  async getUnreadCount(userId: string, tenantId: string) {
     return this.notificationRepo.count({
       where: {
         user: {
           id: userId,
+        },
+        project: {
+          tenant: {
+            id: tenantId,
+          },
         },
         isRead: false,
       },
     });
   }
 
-  async markAsRead(notificationId: string, userId: string) {
+  async markAsRead(notificationId: string, userId: string, tenantId: string) {
     const notification = await this.notificationRepo.findOne({
       where: {
         id: notificationId,
         user: {
           id: userId,
         },
+        project: {
+          tenant: {
+            id: tenantId,
+          },
+        },
       },
     });
 
     if (!notification) {
-      return null;
+      throw new NotFoundException('Notification not found');
     }
 
     notification.isRead = true;
@@ -95,18 +114,34 @@ export class NotificationService {
     return this.notificationRepo.save(notification);
   }
 
-  async markAllAsRead(userId: string) {
-    await this.notificationRepo.update(
-      {
+  async markAllAsRead(userId: string, tenantId: string) {
+    const notifications = await this.notificationRepo.find({
+      where: {
         user: {
           id: userId,
         },
+        project: {
+          tenant: {
+            id: tenantId,
+          },
+        },
         isRead: false,
       },
-      {
-        isRead: true,
+      select: {
+        id: true,
       },
-    );
+    });
+
+    if (notifications.length > 0) {
+      await this.notificationRepo.update(
+        {
+          id: In(notifications.map((notification) => notification.id)),
+        },
+        {
+          isRead: true,
+        },
+      );
+    }
 
     return {
       message: 'All notifications marked as read',

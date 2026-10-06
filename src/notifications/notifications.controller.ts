@@ -10,26 +10,42 @@ export class NotificationsController {
 
   @Get()
   getMyNotifications(@Req() req: any) {
-    return this.notificationService.getMyNotifications(req.user.userId);
+    return this.notificationService.getMyNotifications(
+      req.user.userId,
+      req.user.tenantId,
+    );
   }
 
   @Get('unread')
   getUnread(@Req() req: any) {
-    return this.notificationService.getUnread(req.user.userId);
+    return this.notificationService.getUnread(
+      req.user.userId,
+      req.user.tenantId,
+    );
   }
 
   @Get('unread-count')
   getUnreadCount(@Req() req: any) {
-    return this.notificationService.getUnreadCount(req.user.userId);
+    return this.notificationService.getUnreadCount(
+      req.user.userId,
+      req.user.tenantId,
+    );
   }
 
   @Patch(':notificationId/read')
   markAsRead(@Param('notificationId') notificationId: string, @Req() req: any) {
-    return this.notificationService.markAsRead(notificationId, req.user.userId);
+    return this.notificationService.markAsRead(
+      notificationId,
+      req.user.userId,
+      req.user.tenantId,
+    );
   }
 
   @Patch('read-all')
   markAllAsRead(@Req() req: any) {
-    return this.notificationService.markAllAsRead(req.user.userId);
+    return this.notificationService.markAllAsRead(
+      req.user.userId,
+      req.user.tenantId,
+    );
   }
 }

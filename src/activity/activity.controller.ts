@@ -12,6 +12,7 @@ export class ActivityController {
     return this.activityService.getProjectActivity(
       projectId,
       req.user.tenantId,
+      req.user.userId,
     );
   }
 }

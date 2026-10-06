@@ -1,18 +1,22 @@
-import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
 import { Activity, ActivityAction } from './activity.entity';
+import { ForbiddenException, Injectable } from '@nestjs/common';
 
 import { Project } from '../project/project.entity';
 import { User } from '../users/user.entity';
 import { Task } from '../tasks/task.entity';
+import { ProjectMember } from '../project-members/project-member.entity';
 
 @Injectable()
 export class ActivityService {
   constructor(
     @InjectRepository(Activity)
     private readonly activityRepo: Repository<Activity>,
+
+    @InjectRepository(ProjectMember)
+    private readonly memberRepo: Repository<ProjectMember>,
   ) {}
 
   async log(
@@ -33,7 +37,30 @@ export class ActivityService {
     return this.activityRepo.save(activity);
   }
 
-  async getProjectActivity(projectId: string, tenantId: string, limit = 10) {
+  async getProjectActivity(
+    projectId: string,
+    tenantId: string,
+    userId: string,
+    limit = 10,
+  ) {
+    const membership = await this.memberRepo.findOne({
+      where: {
+        project: {
+          id: projectId,
+          tenant: {
+            id: tenantId,
+          },
+        },
+        user: {
+          id: userId,
+        },
+      },
+    });
+
+    if (!membership) {
+      throw new ForbiddenException('You are not a member of this project');
+    }
+
     const activities = await this.activityRepo.find({
       where: {
         project: {
