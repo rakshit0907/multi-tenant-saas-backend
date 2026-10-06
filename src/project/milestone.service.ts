@@ -44,11 +44,18 @@ export class MilestoneService {
     return project;
   }
 
-  private async getMembership(projectId: string, userId: string) {
+  private async getMembership(
+    projectId: string,
+    userId: string,
+    tenantId: string,
+  ) {
     const membership = await this.memberRepo.findOne({
       where: {
         project: {
           id: projectId,
+          tenant: {
+            id: tenantId,
+          },
         },
         user: {
           id: userId,
@@ -63,8 +70,12 @@ export class MilestoneService {
     return membership;
   }
 
-  private async requireOwner(projectId: string, userId: string) {
-    const membership = await this.getMembership(projectId, userId);
+  private async requireOwner(
+    projectId: string,
+    userId: string,
+    tenantId: string,
+  ) {
+    const membership = await this.getMembership(projectId, userId, tenantId);
 
     if (membership.role !== ProjectRole.OWNER) {
       throw new ForbiddenException(
@@ -83,7 +94,7 @@ export class MilestoneService {
   ) {
     const project = await this.getProject(projectId, tenantId);
 
-    await this.requireOwner(projectId, userId);
+    await this.requireOwner(projectId, userId, tenantId);
 
     const name = dto.name.trim();
 
@@ -103,12 +114,15 @@ export class MilestoneService {
 
   async findAll(projectId: string, tenantId: string, userId: string) {
     await this.getProject(projectId, tenantId);
-    await this.getMembership(projectId, userId);
+    await this.getMembership(projectId, userId, tenantId);
 
     const milestones = await this.milestoneRepo.find({
       where: {
         project: {
           id: projectId,
+          tenant: {
+            id: tenantId,
+          },
         },
       },
       relations: {
@@ -151,13 +165,16 @@ export class MilestoneService {
     dto: UpdateMilestoneDto,
   ) {
     await this.getProject(projectId, tenantId);
-    await this.requireOwner(projectId, userId);
+    await this.requireOwner(projectId, userId, tenantId);
 
     const milestone = await this.milestoneRepo.findOne({
       where: {
         id: milestoneId,
         project: {
           id: projectId,
+          tenant: {
+            id: tenantId,
+          },
         },
       },
     });
@@ -198,13 +215,16 @@ export class MilestoneService {
     userId: string,
   ) {
     await this.getProject(projectId, tenantId);
-    await this.requireOwner(projectId, userId);
+    await this.requireOwner(projectId, userId, tenantId);
 
     const milestone = await this.milestoneRepo.findOne({
       where: {
         id: milestoneId,
         project: {
           id: projectId,
+          tenant: {
+            id: tenantId,
+          },
         },
       },
     });
