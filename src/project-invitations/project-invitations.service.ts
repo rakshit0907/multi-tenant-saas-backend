@@ -17,6 +17,7 @@ import { Project } from '../project/project.entity';
 import { User } from '../users/user.entity';
 import { ProjectMember } from '../project-members/project-member.entity';
 import { ProjectRole } from '../common/enums/project-role.enum';
+import { WorkspaceMember } from '../tenant/workspace-member.entity';
 
 @Injectable()
 export class ProjectInvitationsService {
@@ -32,6 +33,9 @@ export class ProjectInvitationsService {
 
     @InjectRepository(ProjectMember)
     private memberRepo: Repository<ProjectMember>,
+
+    @InjectRepository(WorkspaceMember)
+    private workspaceMemberRepo: Repository<WorkspaceMember>,
 
     private notificationService: NotificationService,
   ) {}
@@ -69,21 +73,56 @@ export class ProjectInvitationsService {
       where: {
         id: invitedUserId,
       },
-      relations: ['tenant'],
     });
 
     if (!invitedUser) {
       throw new NotFoundException('User not found');
     }
 
-    if (invitedUser.tenant.id !== tenantId) {
-      throw new ForbiddenException('User belongs to another organization');
+    const workspaceMembership = await this.workspaceMemberRepo.findOne({
+      where: {
+        tenant: {
+          id: tenantId,
+        },
+        user: {
+          id: invitedUserId,
+        },
+      },
+    });
+
+    if (!workspaceMembership) {
+      throw new ForbiddenException('User is not a member of this workspace');
+    }
+
+    const inviterMembership = await this.memberRepo.findOne({
+      where: {
+        project: {
+          id: projectId,
+          tenant: {
+            id: tenantId,
+          },
+        },
+        user: {
+          id: invitedById,
+        },
+      },
+    });
+
+    if (!inviterMembership) {
+      throw new ForbiddenException('You are not a member of this project');
+    }
+
+    if (inviterMembership.role !== ProjectRole.OWNER) {
+      throw new ForbiddenException('Only the project owner can invite members');
     }
 
     const existingMember = await this.memberRepo.findOne({
       where: {
         project: {
           id: projectId,
+          tenant: {
+            id: tenantId,
+          },
         },
         user: {
           id: invitedUserId,
@@ -99,6 +138,9 @@ export class ProjectInvitationsService {
       where: {
         project: {
           id: projectId,
+          tenant: {
+            id: tenantId,
+          },
         },
         invitedUser: {
           id: invitedUserId,
@@ -140,6 +182,8 @@ export class ProjectInvitationsService {
       where: {
         invitedUser: {
           id: userId,
+        },
+        project: {
           tenant: {
             id: tenantId,
           },
@@ -163,23 +207,25 @@ export class ProjectInvitationsService {
         id: invitationId,
         invitedUser: {
           id: userId,
+        },
+        project: {
           tenant: {
             id: tenantId,
           },
         },
         status: InvitationStatus.PENDING,
       },
-      relations: ['project', 'invitedUser'],
+      relations: ['project', 'project.tenant', 'invitedUser'],
     });
 
     if (!invitation) {
       throw new NotFoundException('Pending invitation not found');
     }
 
-    const existingMember = await this.memberRepo.findOne({
+    const workspaceMembership = await this.workspaceMemberRepo.findOne({
       where: {
-        project: {
-          id: invitation.project.id,
+        tenant: {
+          id: tenantId,
         },
         user: {
           id: userId,
@@ -187,21 +233,33 @@ export class ProjectInvitationsService {
       },
     });
 
-    if (existingMember) {
-      invitation.status = InvitationStatus.ACCEPTED;
-
-      await this.invitationRepo.save(invitation);
-
-      return {
-        message: 'Invitation accepted',
-      };
+    if (!workspaceMembership) {
+      throw new ForbiddenException(
+        'You are no longer a member of this workspace',
+      );
     }
 
-    await this.memberRepo.save({
-      project: invitation.project,
-      user: invitation.invitedUser,
-      role: ProjectRole.MEMBER,
+    const existingMember = await this.memberRepo.findOne({
+      where: {
+        project: {
+          id: invitation.project.id,
+          tenant: {
+            id: tenantId,
+          },
+        },
+        user: {
+          id: userId,
+        },
+      },
     });
+
+    if (!existingMember) {
+      await this.memberRepo.save({
+        project: invitation.project,
+        user: invitation.invitedUser,
+        role: ProjectRole.MEMBER,
+      });
+    }
 
     invitation.status = InvitationStatus.ACCEPTED;
 
@@ -222,6 +280,8 @@ export class ProjectInvitationsService {
         id: invitationId,
         invitedUser: {
           id: userId,
+        },
+        project: {
           tenant: {
             id: tenantId,
           },
