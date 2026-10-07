@@ -519,6 +519,26 @@ export class TenantService {
         throw new NotFoundException('User not found');
       }
 
+      const existingOwnedMembership = await workspaceMemberRepo
+        .createQueryBuilder('membership')
+        .innerJoin('membership.tenant', 'tenant')
+        .where('membership.userId = :userId', {
+          userId,
+        })
+        .andWhere('membership.role = :role', {
+          role: WorkspaceRole.OWNER,
+        })
+        .andWhere('LOWER(tenant.name) = LOWER(:name)', {
+          name: workspaceName,
+        })
+        .getOne();
+
+      if (existingOwnedMembership) {
+        throw new ConflictException(
+          'You already own a workspace with this name',
+        );
+      }
+
       const workspace = tenantRepo.create({
         name: workspaceName,
       });
@@ -568,6 +588,27 @@ export class TenantService {
       throw new ForbiddenException(
         'Only the workspace owner can rename this workspace',
       );
+    }
+
+    const duplicateOwnedWorkspace = await this.workspaceMemberRepo
+      .createQueryBuilder('membership')
+      .innerJoin('membership.tenant', 'tenant')
+      .where('membership.userId = :userId', {
+        userId,
+      })
+      .andWhere('membership.role = :role', {
+        role: WorkspaceRole.OWNER,
+      })
+      .andWhere('tenant.id != :tenantId', {
+        tenantId,
+      })
+      .andWhere('LOWER(tenant.name) = LOWER(:name)', {
+        name: workspaceName,
+      })
+      .getOne();
+
+    if (duplicateOwnedWorkspace) {
+      throw new ConflictException('You already own a workspace with this name');
     }
 
     const workspace = await this.tenantRepo.findOne({
