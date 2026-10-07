@@ -16,6 +16,7 @@ import { createHash, randomBytes } from 'crypto';
 import { Role } from '../common/enums/role.enum';
 import { WorkspaceMember, WorkspaceRole } from './workspace-member.entity';
 import { EmailService } from '../email/email.service';
+import { ProjectMember } from '../project-members/project-member.entity';
 
 @Injectable()
 export class TenantService {
@@ -376,7 +377,29 @@ export class TenantService {
       throw new ForbiddenException('Admins cannot remove another admin');
     }
 
-    await this.workspaceMemberRepo.remove(targetMembership);
+    await this.dataSource.transaction(async (manager) => {
+      const projectMemberRepo = manager.getRepository(ProjectMember);
+      const workspaceMemberRepo = manager.getRepository(WorkspaceMember);
+
+      const projectMemberships = await projectMemberRepo.find({
+        where: {
+          user: {
+            id: targetUserId,
+          },
+          project: {
+            tenant: {
+              id: tenantId,
+            },
+          },
+        },
+      });
+
+      if (projectMemberships.length > 0) {
+        await projectMemberRepo.remove(projectMemberships);
+      }
+
+      await workspaceMemberRepo.remove(targetMembership);
+    });
 
     return {
       message: 'Workspace member removed successfully',
