@@ -9,9 +9,16 @@ import { ActivityModule } from '../activity/activity.module';
 import { Milestone } from './milestone.entity';
 import { MilestoneService } from './milestone.service';
 import { MilestoneController } from './milestone.controller';
+import { WorkspaceMember } from '../tenant/workspace-member.entity';
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Project, ProjectMember, Task, Milestone]),
+    TypeOrmModule.forFeature([
+      Project,
+      ProjectMember,
+      Task,
+      Milestone,
+      WorkspaceMember,
+    ]),
     ActivityModule,
   ],
   providers: [ProjectService, MilestoneService],

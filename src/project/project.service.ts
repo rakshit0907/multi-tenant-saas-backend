@@ -15,6 +15,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { WorkspaceMember } from '../tenant/workspace-member.entity';
 @Injectable()
 export class ProjectService {
   constructor(
@@ -29,6 +30,9 @@ export class ProjectService {
 
     @InjectRepository(Milestone)
     private milestoneRepo: Repository<Milestone>,
+
+    @InjectRepository(WorkspaceMember)
+    private workspaceMemberRepo: Repository<WorkspaceMember>,
 
     private activityService: ActivityService,
   ) {}
@@ -47,6 +51,21 @@ export class ProjectService {
       throw new BadRequestException(
         'Project start date cannot be after due date',
       );
+    }
+
+    const workspaceMembership = await this.workspaceMemberRepo.findOne({
+      where: {
+        tenant: {
+          id: tenantId,
+        },
+        user: {
+          id: userId,
+        },
+      },
+    });
+
+    if (!workspaceMembership) {
+      throw new ForbiddenException('You are not a member of this workspace');
     }
 
     const project = this.repo.create({
@@ -206,13 +225,15 @@ export class ProjectService {
       where: {
         project: {
           id: projectId,
+          tenant: {
+            id: tenantId,
+          },
         },
         user: {
           id: userId,
         },
       },
     });
-
     if (!membership) {
       throw new ForbiddenException('You are not a member of this project');
     }
@@ -221,6 +242,9 @@ export class ProjectService {
       where: {
         project: {
           id: projectId,
+          tenant: {
+            id: tenantId,
+          },
         },
       },
       relations: ['assignee'],
@@ -230,6 +254,9 @@ export class ProjectService {
       where: {
         project: {
           id: projectId,
+          tenant: {
+            id: tenantId,
+          },
         },
       },
       relations: {
@@ -343,6 +370,9 @@ export class ProjectService {
       where: {
         project: {
           id: projectId,
+          tenant: {
+            id: tenantId,
+          },
         },
       },
     });
@@ -351,6 +381,9 @@ export class ProjectService {
       where: {
         project: {
           id: projectId,
+          tenant: {
+            id: tenantId,
+          },
         },
       },
       relations: ['user'],
