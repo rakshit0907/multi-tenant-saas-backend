@@ -7,6 +7,7 @@ import { TenantService } from './tenant.service';
 import { TenantController } from './tenant.controller';
 import { OrganizationInvite } from './organization-invite.entity';
 import { User } from '../users/user.entity';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { User } from '../users/user.entity';
       User,
       WorkspaceMember,
     ]),
+    NotificationsModule,
     JwtModule.register({
       secret: 'secretKey',
       signOptions: {

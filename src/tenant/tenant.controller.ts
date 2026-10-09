@@ -93,4 +93,16 @@ export class TenantController {
       body.name,
     );
   }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Post('invites/:invitationId/accept')
+  acceptWorkspaceInviteById(
+    @Param('invitationId') invitationId: string,
+    @Req() req,
+  ) {
+    return this.tenantService.acceptInviteForExistingUserById(
+      req.user.userId,
+      invitationId,
+    );
+  }
 }

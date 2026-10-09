@@ -17,6 +17,8 @@ import { Role } from '../common/enums/role.enum';
 import { WorkspaceMember, WorkspaceRole } from './workspace-member.entity';
 import { EmailService } from '../email/email.service';
 import { ProjectMember } from '../project-members/project-member.entity';
+import { NotificationService } from '../notifications/notification.service';
+import { NotificationType } from '../notifications/notification.entity';
 
 @Injectable()
 export class TenantService {
@@ -36,6 +38,7 @@ export class TenantService {
     private jwtService: JwtService,
     private dataSource: DataSource,
     private emailService: EmailService,
+    private notificationService: NotificationService,
   ) {}
 
   async createInvite(
@@ -160,11 +163,24 @@ export class TenantService {
       throw error;
     }
 
+    if (existingUser) {
+      await this.notificationService.create({
+        user: existingUser,
+        type: NotificationType.WORKSPACE_INVITATION,
+        title: 'Workspace invitation',
+        message: `You have been invited to join ${tenant.name}`,
+        tenant,
+        metadata: {
+          invitationId: savedInvite.id,
+          workspaceId: tenant.id,
+        },
+      });
+    }
+
     return {
       message: 'Workspace invitation sent successfully',
     };
   }
-
   async create(data: { name: string }) {
     if (!data.name) {
       throw new BadRequestException('Tenant name is required');
@@ -650,15 +666,12 @@ export class TenantService {
       const userRepo = manager.getRepository(User);
       const workspaceMemberRepo = manager.getRepository(WorkspaceMember);
 
-      const invite = await inviteRepo.findOne({
-        where: { tokenHash },
-        relations: {
-          tenant: true,
-        },
-        lock: {
-          mode: 'pessimistic_write',
-        },
-      });
+      const invite = await inviteRepo
+        .createQueryBuilder('invite')
+        .innerJoinAndSelect('invite.tenant', 'tenant')
+        .where('invite.tokenHash = :tokenHash', { tokenHash })
+        .setLock('pessimistic_write')
+        .getOne();
 
       if (!invite) {
         throw new BadRequestException('Invalid invitation');
@@ -693,6 +706,115 @@ export class TenantService {
         where: {
           tenant: { id: invite.tenant.id },
           user: { id: user.id },
+        },
+      });
+
+      if (existingMembership) {
+        throw new ConflictException(
+          'User is already a member of this workspace',
+        );
+      }
+
+      if (invite.role === WorkspaceRole.OWNER) {
+        throw new BadRequestException(
+          'OWNER role cannot be assigned through an invitation',
+        );
+      }
+
+      const membership = workspaceMemberRepo.create({
+        tenant: invite.tenant,
+        user,
+        role: invite.role,
+      });
+
+      await workspaceMemberRepo.save(membership);
+
+      invite.accepted = true;
+      await inviteRepo.save(invite);
+
+      return {
+        userId: user.id,
+        globalRole: user.role,
+        workspace: {
+          id: invite.tenant.id,
+          name: invite.tenant.name,
+          role: membership.role,
+        },
+      };
+    });
+
+    const payload = {
+      userId: result.userId,
+      tenantId: result.workspace.id,
+      role: result.globalRole,
+      workspaceRole: result.workspace.role,
+    };
+
+    const tokenForWorkspace = this.jwtService.sign(payload);
+
+    return {
+      message: 'Workspace invitation accepted successfully',
+      token: tokenForWorkspace,
+      workspace: result.workspace,
+    };
+  }
+
+  async acceptInviteForExistingUserById(userId: string, invitationId: string) {
+    if (!invitationId?.trim()) {
+      throw new BadRequestException('Invitation ID is required');
+    }
+
+    const result = await this.dataSource.transaction(async (manager) => {
+      const inviteRepo = manager.getRepository(OrganizationInvite);
+      const userRepo = manager.getRepository(User);
+      const workspaceMemberRepo = manager.getRepository(WorkspaceMember);
+
+      const invite = await inviteRepo
+        .createQueryBuilder('invite')
+        .innerJoinAndSelect('invite.tenant', 'tenant')
+        .where('invite.id = :invitationId', { invitationId })
+        .setLock('pessimistic_write')
+        .getOne();
+
+      if (!invite) {
+        throw new NotFoundException('Invitation not found');
+      }
+
+      if (invite.accepted) {
+        throw new BadRequestException('Invitation has already been accepted');
+      }
+
+      if (invite.expiresAt.getTime() < Date.now()) {
+        throw new BadRequestException('Invitation has expired');
+      }
+
+      const user = await userRepo.findOne({
+        where: {
+          id: userId,
+        },
+      });
+
+      if (!user) {
+        throw new NotFoundException('User not found');
+      }
+
+      const userEmail = user.email.trim().toLowerCase();
+      const inviteEmail = invite.email.trim().toLowerCase();
+
+      if (userEmail !== inviteEmail) {
+        throw new ForbiddenException(
+          'This invitation belongs to a different email address',
+        );
+      }
+
+      const existingMembership = await workspaceMemberRepo.findOne({
+        where: {
+          tenant: {
+            id: invite.tenant.id,
+          },
+          user: {
+            id: user.id,
+          },
         },
       });
 
