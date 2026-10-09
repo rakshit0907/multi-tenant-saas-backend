@@ -5,7 +5,7 @@ import {
   ManyToOne,
   CreateDateColumn,
 } from 'typeorm';
-
+import { Tenant } from '../tenant/tenant.entity';
 import { User } from '../users/user.entity';
 import { Project } from '../project/project.entity';
 
@@ -16,6 +16,7 @@ export enum NotificationType {
   TASK_STATUS_CHANGED = 'TASK_STATUS_CHANGED',
   MEMBER_ADDED = 'MEMBER_ADDED',
   MEMBER_REMOVED = 'MEMBER_REMOVED',
+  WORKSPACE_INVITATION = 'WORKSPACE_INVITATION',
 }
 
 @Entity()
@@ -34,6 +35,12 @@ export class Notification {
     onDelete: 'CASCADE',
   })
   project!: Project | null;
+
+  @ManyToOne(() => Tenant, {
+    nullable: true,
+    onDelete: 'CASCADE',
+  })
+  tenant!: Tenant | null;
 
   @Column({
     type: 'enum',

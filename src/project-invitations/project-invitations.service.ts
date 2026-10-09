@@ -162,18 +162,17 @@ export class ProjectInvitationsService {
 
     const savedInvitation = await this.invitationRepo.save(invitation);
 
-    await this.notificationService.create(
-      invitedUser,
-      NotificationType.PROJECT_INVITATION,
-      'New project invitation',
-      `You have been invited to join ${project.name}`,
+    await this.notificationService.create({
+      user: invitedUser,
+      type: NotificationType.PROJECT_INVITATION,
+      title: 'New project invitation',
+      message: `You have been invited to join ${project.name}`,
       project,
-      {
+      metadata: {
         invitationId: savedInvitation.id,
         invitedById: invitedBy.id,
       },
-    );
-
+    });
     return savedInvitation;
   }
 

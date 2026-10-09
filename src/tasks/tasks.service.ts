@@ -312,17 +312,17 @@ export class TasksService {
       },
     );
     if (assignee && assignee.id !== creator.id) {
-      await this.notificationService.create(
-        assignee,
-        NotificationType.TASK_ASSIGNED,
-        'New Task Assigned',
-        `${creator.name} assigned "${savedTask.title}" to you`,
+      await this.notificationService.create({
+        user: assignee,
+        type: NotificationType.TASK_ASSIGNED,
+        title: 'New Task Assigned',
+        message: `${creator.name} assigned "${savedTask.title}" to you`,
         project,
-        {
+        metadata: {
           taskId: savedTask.id,
           projectId: project.id,
         },
-      );
+      });
     }
     return savedTask;
   }
@@ -586,19 +586,19 @@ export class TasksService {
             ? `${user.name} completed "${savedTask.title}"`
             : `${user.name} changed "${savedTask.title}" from ${oldStatus} to ${savedTask.status}`;
 
-        await this.notificationService.create(
-          savedTask.assignee,
-          notificationType,
+        await this.notificationService.create({
+          user: savedTask.assignee,
+          type: notificationType,
           title,
           message,
-          task.project,
-          {
+          project: task.project,
+          metadata: {
             taskId: savedTask.id,
             projectId: task.project.id,
             oldStatus,
             newStatus: savedTask.status,
           },
-        );
+        });
       }
     }
 
@@ -644,17 +644,17 @@ export class TasksService {
       );
 
       if (newAssignee && newAssignee.id !== user.id) {
-        await this.notificationService.create(
-          newAssignee,
-          NotificationType.TASK_ASSIGNED,
-          'Task Assigned',
-          `${user.name} assigned "${savedTask.title}" to you`,
-          task.project,
-          {
+        await this.notificationService.create({
+          user: newAssignee,
+          type: NotificationType.TASK_ASSIGNED,
+          title: 'Task Assigned',
+          message: `${user.name} assigned "${savedTask.title}" to you`,
+          project: task.project,
+          metadata: {
             taskId: savedTask.id,
             projectId: task.project.id,
           },
-        );
+        });
       }
     }
 
