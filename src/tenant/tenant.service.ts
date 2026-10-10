@@ -861,6 +861,11 @@ export class TenantService {
 
     const tokenForWorkspace = this.jwtService.sign(payload);
 
+    await this.notificationService.deleteWorkspaceInviteNotification(
+      result.userId,
+      invitationId,
+    );
+
     return {
       message: 'Workspace invitation accepted successfully',
       token: tokenForWorkspace,

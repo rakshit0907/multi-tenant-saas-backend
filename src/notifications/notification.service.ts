@@ -238,4 +238,27 @@ export class NotificationService {
       message: 'All notifications marked as read',
     };
   }
+
+  async deleteWorkspaceInviteNotification(
+    userId: string,
+    invitationId: string,
+  ) {
+    const notification = await this.notificationRepo
+      .createQueryBuilder('notification')
+      .innerJoin('notification.user', 'user')
+      .where('user.id = :userId', { userId })
+      .andWhere('notification.type = :type', {
+        type: NotificationType.WORKSPACE_INVITATION,
+      })
+      .andWhere("notification.metadata ->> 'invitationId' = :invitationId", {
+        invitationId,
+      })
+      .getOne();
+
+    if (!notification) {
+      return;
+    }
+
+    await this.notificationRepo.remove(notification);
+  }
 }
