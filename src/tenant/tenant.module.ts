@@ -8,6 +8,7 @@ import { TenantController } from './tenant.controller';
 import { OrganizationInvite } from './organization-invite.entity';
 import { User } from '../users/user.entity';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { ConfigService } from '@nestjs/config';
 
 @Module({
   imports: [
@@ -18,12 +19,15 @@ import { NotificationsModule } from '../notifications/notifications.module';
       WorkspaceMember,
     ]),
     NotificationsModule,
-    JwtModule.register({
-      secret: 'secretKey',
-      signOptions: {
-        expiresIn: '1d',
-      },
-    }),
+   JwtModule.registerAsync({
+  inject: [ConfigService],
+  useFactory: (configService: ConfigService) => ({
+    secret: configService.getOrThrow<string>('JWT_SECRET'),
+    signOptions: {
+      expiresIn: '1d',
+    },
+  }),
+}),
   ],
   providers: [TenantService],
   controllers: [TenantController],
