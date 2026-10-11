@@ -444,6 +444,66 @@ export class TasksService {
     return query.getMany();
   }
 
+  async getCalendarTasks(
+    tenantId: string,
+    userId: string,
+    startDate: Date,
+    endDate: Date,
+  ) {
+    if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
+      throw new BadRequestException('Invalid calendar date range');
+    }
+
+    if (startDate > endDate) {
+      throw new BadRequestException(
+        'Calendar start date cannot be after end date',
+      );
+    }
+
+    const memberships = await this.memberRepo.find({
+      where: {
+        user: {
+          id: userId,
+        },
+        project: {
+          tenant: {
+            id: tenantId,
+          },
+        },
+      },
+      relations: ['project'],
+    });
+
+    if (memberships.length === 0) {
+      return [];
+    }
+
+    const projectIds = memberships.map((membership) => membership.project.id);
+
+    return this.repo
+      .createQueryBuilder('task')
+      .leftJoinAndSelect('task.project', 'project')
+      .leftJoinAndSelect('task.assignee', 'assignee')
+      .leftJoinAndSelect('task.labels', 'labels')
+      .leftJoinAndSelect('task.milestone', 'milestone')
+      .innerJoin('project.tenant', 'tenant')
+      .where('tenant.id = :tenantId', {
+        tenantId,
+      })
+      .andWhere('project.id IN (:...projectIds)', {
+        projectIds,
+      })
+      .andWhere('task.dueDate IS NOT NULL')
+      .andWhere('task.dueDate >= :startDate', {
+        startDate,
+      })
+      .andWhere('task.dueDate <= :endDate', {
+        endDate,
+      })
+      .orderBy('task.dueDate', 'ASC')
+      .getMany();
+  }
+
   async updateTask(
     id: string,
     title: string,

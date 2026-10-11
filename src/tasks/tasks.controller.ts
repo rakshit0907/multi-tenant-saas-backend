@@ -296,6 +296,27 @@ export class TasksController {
     );
   }
 
+  @Get('calendar')
+  getCalendarTasks(
+    @Query('start') start: string,
+    @Query('end') end: string,
+    @Req() req: any,
+  ) {
+    if (!start || !end) {
+      throw new BadRequestException('Both start and end dates are required');
+    }
+
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+
+    return this.tasksService.getCalendarTasks(
+      req.user.tenantId,
+      req.user.userId,
+      startDate,
+      endDate,
+    );
+  }
+
   @Get(':id')
   getTask(@Param('id') id: string, @Req() req: any) {
     return this.tasksService.getTask(id, req.user.tenantId, req.user.userId);
