@@ -83,13 +83,15 @@ export class ProjectMembersService {
       where: {
         project: {
           id: projectId,
+          tenant: {
+            id: tenantId,
+          },
         },
         user: {
           id: userId,
         },
       },
     });
-
     if (existingMember) {
       throw new BadRequestException('User is already a member of this project');
     }
@@ -135,6 +137,9 @@ export class ProjectMembersService {
       where: {
         project: {
           id: projectId,
+          tenant: {
+            id: tenantId,
+          },
         },
         user: {
           id: requesterId,
@@ -150,6 +155,9 @@ export class ProjectMembersService {
       where: {
         project: {
           id: projectId,
+          tenant: {
+            id: tenantId,
+          },
         },
       },
       relations: ['user'],

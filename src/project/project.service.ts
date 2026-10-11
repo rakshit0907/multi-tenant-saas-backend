@@ -107,8 +107,15 @@ export class ProjectService {
 
     const membership = await this.memberRepo.findOne({
       where: {
-        project: { id },
-        user: { id: userId },
+        project: {
+          id,
+          tenant: {
+            id: tenantId,
+          },
+        },
+        user: {
+          id: userId,
+        },
       },
     });
 
@@ -175,8 +182,15 @@ export class ProjectService {
 
     const membership = await this.memberRepo.findOne({
       where: {
-        project: { id },
-        user: { id: userId },
+        project: {
+          id,
+          tenant: {
+            id: tenantId,
+          },
+        },
+        user: {
+          id: userId,
+        },
       },
     });
 

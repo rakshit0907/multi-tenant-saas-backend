@@ -226,8 +226,15 @@ export class TasksService {
 
       const membership = await this.memberRepo.findOne({
         where: {
-          project: { id: projectId },
-          user: { id: assigneeId },
+          project: {
+            id: projectId,
+            tenant: {
+              id: tenantId,
+            },
+          },
+          user: {
+            id: assigneeId,
+          },
         },
       });
 
@@ -248,8 +255,9 @@ export class TasksService {
           .where('label.id IN (:...labelIds)', {
             labelIds: uniqueLabelIds,
           })
-          .andWhere('project.id = :projectId', {
-            projectId,
+          .innerJoin('project.tenant', 'tenant')
+          .andWhere('tenant.id = :tenantId', {
+            tenantId,
           })
           .getMany();
 
@@ -269,6 +277,9 @@ export class TasksService {
           id: milestoneId,
           project: {
             id: projectId,
+            tenant: {
+              id: tenantId,
+            },
           },
         },
       });
@@ -498,7 +509,12 @@ export class TasksService {
 
         const membership = await this.memberRepo.findOne({
           where: {
-            project: { id: task.project.id },
+            project: {
+              id: task.project.id,
+              tenant: {
+                id: tenantId,
+              },
+            },
             user: { id: assigneeId },
           },
         });
@@ -520,6 +536,9 @@ export class TasksService {
             id: milestoneId,
             project: {
               id: task.project.id,
+              tenant: {
+                id: tenantId,
+              },
             },
           },
         });
@@ -531,6 +550,37 @@ export class TasksService {
         }
 
         task.milestone = milestone;
+      }
+    }
+
+    if (labelIds !== undefined) {
+      const uniqueLabelIds = [...new Set(labelIds)];
+
+      if (uniqueLabelIds.length === 0) {
+        task.labels = [];
+      } else {
+        const labels = await this.labelRepo
+          .createQueryBuilder('label')
+          .innerJoin('label.project', 'project')
+          .innerJoin('project.tenant', 'tenant')
+          .where('label.id IN (:...labelIds)', {
+            labelIds: uniqueLabelIds,
+          })
+          .andWhere('project.id = :projectId', {
+            projectId: task.project.id,
+          })
+          .andWhere('tenant.id = :tenantId', {
+            tenantId,
+          })
+          .getMany();
+
+        if (labels.length !== uniqueLabelIds.length) {
+          throw new BadRequestException(
+            'One or more labels are invalid for this project',
+          );
+        }
+
+        task.labels = labels;
       }
     }
     const savedTask = await this.repo.save(task);

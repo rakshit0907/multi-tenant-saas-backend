@@ -127,11 +127,15 @@ export class TaskAttachmentsService {
 
   async getAttachments(taskId: string, tenantId: string, userId: string) {
     await this.getAuthorizedTask(taskId, tenantId, userId);
-
     return this.attachmentRepo.find({
       where: {
         task: {
           id: taskId,
+          project: {
+            tenant: {
+              id: tenantId,
+            },
+          },
         },
       },
       relations: ['uploadedBy'],

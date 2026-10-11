@@ -83,12 +83,15 @@ export class LabelsService {
     }
   }
 
-  private async getLabel(labelId: string, projectId: string) {
+  private async getLabel(labelId: string, projectId: string, tenantId: string) {
     const label = await this.labelRepo.findOne({
       where: {
         id: labelId,
         project: {
           id: projectId,
+          tenant: {
+            id: tenantId,
+          },
         },
       },
       relations: ['project'],
@@ -113,7 +116,7 @@ export class LabelsService {
 
     await this.verifyOwner(projectId, userId, tenantId);
 
-    const label = await this.getLabel(labelId, projectId);
+    const label = await this.getLabel(labelId, projectId, tenantId);
 
     if (name !== undefined) {
       const cleanName = name.trim();
@@ -159,7 +162,7 @@ export class LabelsService {
 
     await this.verifyOwner(projectId, userId, tenantId);
 
-    const label = await this.getLabel(labelId, projectId);
+    const label = await this.getLabel(labelId, projectId, tenantId);
 
     await this.labelRepo.remove(label);
 
@@ -217,6 +220,9 @@ export class LabelsService {
       where: {
         project: {
           id: projectId,
+          tenant: {
+            id: tenantId,
+          },
         },
       },
       order: {

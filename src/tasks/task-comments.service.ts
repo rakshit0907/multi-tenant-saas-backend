@@ -118,6 +118,11 @@ export class TaskCommentsService {
       where: {
         task: {
           id: taskId,
+          project: {
+            tenant: {
+              id: tenantId,
+            },
+          },
         },
       },
       relations: ['author'],

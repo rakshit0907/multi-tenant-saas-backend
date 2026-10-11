@@ -900,15 +900,12 @@ export class TenantService {
       const userRepo = manager.getRepository(User);
       const workspaceMemberRepo = manager.getRepository(WorkspaceMember);
 
-      const invite = await inviteRepo.findOne({
-        where: { tokenHash },
-        relations: {
-          tenant: true,
-        },
-        lock: {
-          mode: 'pessimistic_write',
-        },
-      });
+      const invite = await inviteRepo
+        .createQueryBuilder('invite')
+        .innerJoinAndSelect('invite.tenant', 'tenant')
+        .where('invite.tokenHash = :tokenHash', { tokenHash })
+        .setLock('pessimistic_write')
+        .getOne();
 
       if (!invite) {
         throw new BadRequestException('Invalid invitation');
