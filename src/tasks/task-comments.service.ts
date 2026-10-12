@@ -6,7 +6,8 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-
+import { NotificationService } from '../notifications/notification.service';
+import { NotificationType } from '../notifications/notification.entity';
 import { TaskComment } from './task-comment.entity';
 import { Task } from './task.entity';
 import { User } from '../users/user.entity';
@@ -27,6 +28,8 @@ export class TaskCommentsService {
 
     @InjectRepository(ProjectMember)
     private readonly memberRepo: Repository<ProjectMember>,
+
+    private readonly notificationService: NotificationService,
   ) {}
 
   private async getTaskAndVerifyMember(
@@ -108,7 +111,67 @@ export class TaskCommentsService {
       author,
     });
 
-    return this.commentRepo.save(comment);
+    const savedComment = await this.commentRepo.save(comment);
+
+    const mentionMatches = trimmedContent.match(/@([a-zA-Z0-9._-]+)/g) ?? [];
+
+    const mentionedNames = [
+      ...new Set(
+        mentionMatches.map((mention) =>
+          mention.substring(1).replaceAll('_', ' ').trim().toLowerCase(),
+        ),
+      ),
+    ];
+
+    if (mentionedNames.length > 0) {
+      const projectMembers = await this.memberRepo.find({
+        where: {
+          project: {
+            id: task.project.id,
+            tenant: {
+              id: tenantId,
+            },
+          },
+        },
+        relations: ['user'],
+      });
+
+      const notifiedUserIds = new Set<string>();
+
+      for (const membership of projectMembers) {
+        const mentionedUser = membership.user;
+
+        if (!mentionedUser || mentionedUser.id === userId) {
+          continue;
+        }
+
+        const userName = mentionedUser.name?.trim().toLowerCase();
+
+        if (!userName || !mentionedNames.includes(userName)) {
+          continue;
+        }
+
+        if (notifiedUserIds.has(mentionedUser.id)) {
+          continue;
+        }
+
+        await this.notificationService.create({
+          user: mentionedUser,
+          type: NotificationType.TASK_MENTIONED,
+          title: 'You were mentioned in a comment',
+          message: `${author.name} mentioned you in "${task.title}"`,
+          project: task.project,
+          metadata: {
+            taskId: task.id,
+            commentId: savedComment.id,
+          },
+        });
+
+        notifiedUserIds.add(mentionedUser.id);
+      }
+    }
+
+    return savedComment;
   }
 
   async getComments(taskId: string, tenantId: string, userId: string) {
