@@ -19,6 +19,7 @@ import { ProjectInvitationsModule } from './project-invitations/project-invitati
 import { NotificationsModule } from './notifications/notifications.module';
 import { ConfigModule } from '@nestjs/config';
 import { EmailModule } from './email/email.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 
 @Module({
   imports: [
@@ -52,6 +53,7 @@ import { EmailModule } from './email/email.module';
     ProjectInvitationsModule,
     NotificationsModule,
     EmailModule,
+    DashboardModule,
   ],
 
   // ✅ CORRECT PLACE
