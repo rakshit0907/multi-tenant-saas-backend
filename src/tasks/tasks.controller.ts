@@ -228,14 +228,7 @@ export class TasksController {
       body.milestoneId,
     );
   }
-  @Patch(':id/toggle')
-  toggle(@Param('id') id: string, @Req() req: any) {
-    return this.tasksService.toggleComplete(
-      id,
-      req.user.tenantId,
-      req.user.userId,
-    );
-  }
+
   @Delete(':id')
   delete(@Param('id') id: string, @Req() req: any) {
     return this.tasksService.deleteTask(id, req.user.tenantId, req.user.userId);

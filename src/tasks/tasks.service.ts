@@ -43,65 +43,6 @@ export class TasksService {
     private notificationService: NotificationService,
   ) {}
 
-  async toggleComplete(id: string, tenantId: string, userId?: string) {
-    const task = await this.repo.findOne({
-      where: {
-        id,
-        project: {
-          tenant: {
-            id: tenantId,
-          },
-        },
-      },
-      relations: ['project', 'assignee'],
-    });
-
-    if (!task) {
-      throw new NotFoundException('Task not found');
-    }
-
-    if (!userId) {
-      throw new ForbiddenException('Authenticated user is required');
-    }
-
-    const membership = await this.getMembership(
-      task.project.id,
-      userId,
-      tenantId,
-    );
-
-    if (membership.role !== ProjectRole.OWNER && task.assignee?.id !== userId) {
-      throw new ForbiddenException(
-        'You can only complete tasks assigned to you',
-      );
-    }
-
-    task.completed = !task.completed;
-
-    const savedTask = await this.repo.save(task);
-
-    const user = await this.userRepo.findOne({
-      where: {
-        id: userId,
-      },
-    });
-
-    if (!user) {
-      throw new NotFoundException('Updating user not found');
-    }
-
-    await this.activityService.log(
-      ActivityAction.TASK_COMPLETED,
-      task.project,
-      user,
-      savedTask,
-      {
-        completed: savedTask.completed,
-      },
-    );
-    return savedTask;
-  }
-
   async getTask(id: string, tenantId: string, userId?: string) {
     const task = await this.repo.findOne({
       where: {
@@ -405,7 +346,6 @@ export class TasksService {
         labelId: filters.labelId,
       });
     }
-
     // Status filter
     if (filters?.status) {
       query.andWhere('task.status = :status', {
