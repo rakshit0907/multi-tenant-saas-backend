@@ -31,11 +31,6 @@ export class Task {
   title!: string;
 
   @Column({
-    default: false,
-  })
-  completed!: boolean;
-
-  @Column({
     type: 'enum',
     enum: TaskPriority,
     default: TaskPriority.MEDIUM,
