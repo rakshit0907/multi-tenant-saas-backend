@@ -17,6 +17,7 @@ import { NotificationType } from '../notifications/notification.entity';
 import { ProjectRole } from '../common/enums/project-role.enum';
 import { Label } from './label.entity';
 import { Milestone } from '../project/milestone.entity';
+import { TaskAttachmentsService } from './task-attachments.service';
 
 @Injectable()
 export class TasksService {
@@ -41,6 +42,7 @@ export class TasksService {
 
     private activityService: ActivityService,
     private notificationService: NotificationService,
+    private readonly taskAttachmentsService: TaskAttachmentsService,
   ) {}
 
   async getTask(id: string, tenantId: string, userId?: string) {
@@ -824,7 +826,19 @@ export class TasksService {
       },
     );
 
-    return this.repo.remove(task);
+    const attachmentFilePaths =
+      await this.taskAttachmentsService.getTaskAttachmentFilePaths(
+        task.id,
+        tenantId,
+      );
+
+    const deletedTask = await this.repo.remove(task);
+
+    // Attachment DB rows are removed by PostgreSQL ON DELETE CASCADE.
+    // Clean up their physical files afterwards.
+    await this.taskAttachmentsService.deletePhysicalFiles(attachmentFilePaths);
+
+    return deletedTask;
   }
 
   private async getMembership(

@@ -6,7 +6,8 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as fs from 'fs/promises';
-import { extname, join } from 'path';
+import { join } from 'path';
+import * as mime from 'mime-types';
 import { TaskAttachment } from './task-attachment.entity';
 import { Task } from './task.entity';
 import { User } from '../users/user.entity';
@@ -97,7 +98,13 @@ export class TaskAttachmentsService {
 
     const uniqueName = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
 
-    const fileName = `${uniqueName}${extname(file.originalname)}`;
+    const detectedExtension = mime.extension(file.mimetype);
+
+    if (!detectedExtension) {
+      throw new ForbiddenException('Unsupported file type');
+    }
+
+    const fileName = `${uniqueName}.${detectedExtension}`;
 
     const filePath = join(uploadDirectory, fileName);
 
@@ -234,5 +241,36 @@ export class TaskAttachmentsService {
     return {
       message: 'Attachment deleted successfully',
     };
+  }
+
+  async getTaskAttachmentFilePaths(
+    taskId: string,
+    tenantId: string,
+  ): Promise<string[]> {
+    const attachments = await this.attachmentRepo
+      .createQueryBuilder('attachment')
+      .addSelect('attachment.filePath')
+      .innerJoin('attachment.task', 'task')
+      .innerJoin('task.project', 'project')
+      .innerJoin('project.tenant', 'tenant')
+      .where('task.id = :taskId', { taskId })
+      .andWhere('tenant.id = :tenantId', { tenantId })
+      .getMany();
+
+    return attachments
+      .map((attachment) => attachment.filePath)
+      .filter((filePath): filePath is string => Boolean(filePath));
+  }
+
+  async deletePhysicalFiles(filePaths: string[]): Promise<void> {
+    for (const filePath of filePaths) {
+      try {
+        await fs.unlink(filePath);
+      } catch (error: any) {
+        if (error.code !== 'ENOENT') {
+          console.error(`Failed to delete attachment file: ${filePath}`, error);
+        }
+      }
+    }
   }
 }
