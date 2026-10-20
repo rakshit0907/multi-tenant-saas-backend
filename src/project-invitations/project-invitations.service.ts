@@ -264,6 +264,11 @@ export class ProjectInvitationsService {
 
     await this.invitationRepo.save(invitation);
 
+    await this.notificationService.deleteProjectInviteNotification(
+      userId,
+      invitationId,
+    );
+
     return {
       message: 'Invitation accepted',
     };
@@ -296,6 +301,11 @@ export class ProjectInvitationsService {
     invitation.status = InvitationStatus.REJECTED;
 
     await this.invitationRepo.save(invitation);
+
+    await this.notificationService.deleteProjectInviteNotification(
+      userId,
+      invitationId,
+    );
 
     return {
       message: 'Invitation rejected',
