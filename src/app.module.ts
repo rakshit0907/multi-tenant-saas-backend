@@ -26,16 +26,16 @@ import { DashboardModule } from './dashboard/dashboard.module';
     ConfigModule.forRoot({
       isGlobal: true,
     }),
-    TypeOrmModule.forRoot({
-      type: 'postgres',
-      host: 'localhost',
-      port: 5432,
-      username: 'postgres',
-      password: 'postgres',
-      database: 'saas_db',
-      autoLoadEntities: true,
-      synchronize: false,
-    }),
+   TypeOrmModule.forRoot({
+  type: 'postgres',
+  host: process.env.DB_HOST ?? 'localhost',
+  port: Number(process.env.DB_PORT ?? 5432),
+  username: process.env.DB_USERNAME ?? 'postgres',
+  password: process.env.DB_PASSWORD ?? 'postgres',
+  database: process.env.DB_DATABASE ?? 'saas_db',
+  autoLoadEntities: true,
+  synchronize: false,
+}),
     ProjectModule,
     ActivityModule,
     ClsModule.forRoot({

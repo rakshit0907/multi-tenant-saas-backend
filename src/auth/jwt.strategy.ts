@@ -8,16 +8,16 @@ import { WorkspaceMember } from '../tenant/workspace-member.entity';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
- constructor(
-  @InjectRepository(WorkspaceMember)
-  private readonly workspaceMemberRepo: Repository<WorkspaceMember>,
-  private readonly configService: ConfigService,
-) {
-  super({
-    jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-    secretOrKey: configService.getOrThrow<string>('JWT_SECRET'),
-  });
-}
+  constructor(
+    @InjectRepository(WorkspaceMember)
+    private readonly workspaceMemberRepo: Repository<WorkspaceMember>,
+    private readonly configService: ConfigService,
+  ) {
+    super({
+      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      secretOrKey: configService.getOrThrow<string>('JWT_SECRET'),
+    });
+  }
 
   async validate(payload: any) {
     const userId = payload.userId;

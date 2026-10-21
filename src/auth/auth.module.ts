@@ -14,15 +14,15 @@ import { ConfigService } from '@nestjs/config';
     UsersModule, // ✅ REQUIRED
     TenantModule,
     TypeOrmModule.forFeature([WorkspaceMember]),
-   JwtModule.registerAsync({
-  inject: [ConfigService],
-  useFactory: (configService: ConfigService) => ({
-    secret: configService.getOrThrow<string>('JWT_SECRET'),
-    signOptions: {
-      expiresIn: '1d',
-    },
-  }),
-}),
+    JwtModule.registerAsync({
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        secret: configService.getOrThrow<string>('JWT_SECRET'),
+        signOptions: {
+          expiresIn: '1d',
+        },
+      }),
+    }),
   ],
   providers: [AuthService, JwtStrategy],
   controllers: [AuthController],
