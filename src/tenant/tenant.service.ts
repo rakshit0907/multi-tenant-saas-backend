@@ -734,6 +734,7 @@ export class TenantService {
 
       return {
         userId: user.id,
+        invitationId: invite.id,
         globalRole: user.role,
         workspace: {
           id: invite.tenant.id,
@@ -751,7 +752,10 @@ export class TenantService {
     };
 
     const tokenForWorkspace = this.jwtService.sign(payload);
-
+    await this.notificationService.deleteWorkspaceInviteNotification(
+      result.userId,
+      result.invitationId,
+    );
     return {
       message: 'Workspace invitation accepted successfully',
       token: tokenForWorkspace,
@@ -870,6 +874,58 @@ export class TenantService {
       message: 'Workspace invitation accepted successfully',
       token: tokenForWorkspace,
       workspace: result.workspace,
+    };
+  }
+
+  async rejectWorkspaceInviteById(userId: string, invitationId: string) {
+    if (!invitationId?.trim()) {
+      throw new BadRequestException('Invitation ID is required');
+    }
+
+    await this.dataSource.transaction(async (manager) => {
+      const inviteRepo = manager.getRepository(OrganizationInvite);
+      const userRepo = manager.getRepository(User);
+
+      const invite = await inviteRepo
+        .createQueryBuilder('invite')
+        .where('invite.id = :invitationId', { invitationId })
+        .setLock('pessimistic_write')
+        .getOne();
+
+      if (!invite) {
+        throw new NotFoundException('Invitation not found');
+      }
+
+      if (invite.accepted) {
+        throw new BadRequestException('Invitation has already been accepted');
+      }
+
+      const user = await userRepo.findOne({
+        where: { id: userId },
+      });
+
+      if (!user) {
+        throw new NotFoundException('User not found');
+      }
+
+      if (
+        user.email.trim().toLowerCase() !== invite.email.trim().toLowerCase()
+      ) {
+        throw new ForbiddenException(
+          'This invitation belongs to a different email address',
+        );
+      }
+
+      await inviteRepo.remove(invite);
+    });
+
+    await this.notificationService.deleteWorkspaceInviteNotification(
+      userId,
+      invitationId,
+    );
+
+    return {
+      message: 'Workspace invitation rejected successfully',
     };
   }
 

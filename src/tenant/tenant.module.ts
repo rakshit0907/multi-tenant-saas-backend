@@ -19,15 +19,15 @@ import { ConfigService } from '@nestjs/config';
       WorkspaceMember,
     ]),
     NotificationsModule,
-   JwtModule.registerAsync({
-  inject: [ConfigService],
-  useFactory: (configService: ConfigService) => ({
-    secret: configService.getOrThrow<string>('JWT_SECRET'),
-    signOptions: {
-      expiresIn: '1d',
-    },
-  }),
-}),
+    JwtModule.registerAsync({
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        secret: configService.getOrThrow<string>('JWT_SECRET'),
+        signOptions: {
+          expiresIn: '1d',
+        },
+      }),
+    }),
   ],
   providers: [TenantService],
   controllers: [TenantController],

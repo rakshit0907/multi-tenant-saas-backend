@@ -105,4 +105,16 @@ export class TenantController {
       invitationId,
     );
   }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Patch('invites/:invitationId/reject')
+  rejectWorkspaceInviteById(
+    @Param('invitationId') invitationId: string,
+    @Req() req,
+  ) {
+    return this.tenantService.rejectWorkspaceInviteById(
+      req.user.userId,
+      invitationId,
+    );
+  }
 }
