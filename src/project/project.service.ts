@@ -206,22 +206,22 @@ export class ProjectService {
       message: 'Project deleted successfully',
     };
   }
- async findAll(tenantId: string, userId: string) {
-  const memberships = await this.memberRepo.find({
-    where: {
-      user: { id: userId },
-      project: {
-        tenant: { id: tenantId },
+  async findAll(tenantId: string, userId: string) {
+    const memberships = await this.memberRepo.find({
+      where: {
+        user: { id: userId },
+        project: {
+          tenant: { id: tenantId },
+        },
       },
-    },
-    relations: ['project'],
-  });
+      relations: ['project'],
+    });
 
-  return memberships.map((membership) => ({
-    ...membership.project,
-    currentUserRole: membership.role,
-  }));
-}
+    return memberships.map((membership) => ({
+      ...membership.project,
+      currentUserRole: membership.role,
+    }));
+  }
 
   async getDashboard(projectId: string, tenantId: string, userId: string) {
     const project = await this.repo.findOne({
