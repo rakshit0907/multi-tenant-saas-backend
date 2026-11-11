@@ -1,6 +1,7 @@
 import {
   IsArray,
   IsEnum,
+  IsNotEmpty,
   IsOptional,
   IsString,
   IsDateString,
@@ -8,11 +9,17 @@ import {
   MaxLength,
 } from 'class-validator';
 
+import { Transform } from 'class-transformer';
+
 import { TaskPriority, TaskStatus } from '../task.entity';
 
 export class UpdateTaskDto {
   @IsOptional()
+  @Transform(({ value }: { value: unknown }) => 
+    typeof value === 'string' ? value.trim() : value,
+)
   @IsString()
+  @IsNotEmpty()
   @MaxLength(150)
   title?: string;
 
