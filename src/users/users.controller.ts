@@ -13,6 +13,6 @@ export class UsersController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
   getAllUsers(@Req() req) {
-    return this.usersService.findAll();
+    return this.usersService.findAll(req.user.tenantId);
   }
 }

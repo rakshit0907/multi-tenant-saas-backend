@@ -1,13 +1,7 @@
-import {
-  Module,
-  MiddlewareConsumer,
-  NestModule,
-  RequestMethod,
-} from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ClsModule } from 'nestjs-cls';
 import { ProjectModule } from './project/project.module';
-import { TenantMiddleware } from './common/middleware/tenant.middleware';
 import { ActivityModule } from './activity/activity.module';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
@@ -61,32 +55,4 @@ import { DashboardModule } from './dashboard/dashboard.module';
 
   providers: [],
 })
-export class AppModule implements NestModule {
-  configure(consumer: MiddlewareConsumer) {
-    consumer
-      .apply(TenantMiddleware)
-      .exclude(
-        {
-          path: 'auth/login',
-          method: RequestMethod.POST,
-        },
-        {
-          path: 'auth/signup',
-          method: RequestMethod.POST,
-        },
-        {
-          path: 'auth/verify-email',
-          method: RequestMethod.POST,
-        },
-        {
-          path: 'auth/resend-verification',
-          method: RequestMethod.POST,
-        },
-        {
-          path: 'auth/verify-email-link',
-          method: RequestMethod.GET,
-        },
-      )
-      .forRoutes('*');
-  }
-}
+export class AppModule {}
