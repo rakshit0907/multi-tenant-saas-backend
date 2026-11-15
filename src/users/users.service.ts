@@ -2,13 +2,11 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from './user.entity';
-import { ClsService } from 'nestjs-cls';
 @Injectable()
 export class UsersService {
   constructor(
     @InjectRepository(User)
     private userRepository: Repository<User>,
-    private cls: ClsService,
   ) {}
 
   async create(data: Partial<User>): Promise<User> {
@@ -76,8 +74,7 @@ export class UsersService {
       .getOne();
   }
 
-  findAll() {
-    const tenantId = this.cls.get('tenantId');
+  findAll(tenantId: string) {
 
     return this.userRepository.find({
       where: {
