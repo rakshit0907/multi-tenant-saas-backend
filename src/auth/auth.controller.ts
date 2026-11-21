@@ -11,10 +11,14 @@ import { Req, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { AcceptInviteDto } from '../tenant/dto/accept-invite.dto';
 import { AcceptExistingInviteDto } from './dto/accept-existing-invite.dto';
+import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
+
+@UseGuards(ThrottlerGuard)
 @Controller('auth')
 export class AuthController {
   constructor(private authService: AuthService) {}
-
+  
+  @Throttle({ default: { limit: 5, ttl: 900000 } })
   @Post('signup')
   signup(@Body() data: SignupDto) {
     return this.authService.signup(data);
@@ -28,12 +32,14 @@ export class AuthController {
   verifyEmail(@Body() data: VerifyEmailDto) {
     return this.authService.verifyEmail(data.token);
   }
-
+  
+  @Throttle({ default: { limit: 5, ttl: 900000 } })
   @Post('resend-verification')
   resendVerification(@Body() data: ResendVerificationDto) {
     return this.authService.resendVerification(data.email);
   }
-
+  
+  @Throttle({ default: { limit: 5, ttl: 900000 } })
   @Post('forgot-password')
   forgotPassword(@Body() dto: ForgotPasswordDto) {
     return this.authService.forgotPassword(dto.email);

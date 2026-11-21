@@ -8,11 +8,14 @@ import { JwtStrategy } from './jwt.strategy';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { WorkspaceMember } from '../tenant/workspace-member.entity';
 import { ConfigService } from '@nestjs/config';
+import { ThrottlerModule } from '@nestjs/throttler';
+import { authThrottlerOptions } from './auth-throttler.config';
 
 @Module({
   imports: [
     UsersModule, // ✅ REQUIRED
     TenantModule,
+    ThrottlerModule.forRoot(authThrottlerOptions),
     TypeOrmModule.forFeature([WorkspaceMember]),
     JwtModule.registerAsync({
       inject: [ConfigService],
